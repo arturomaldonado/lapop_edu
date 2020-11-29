@@ -1,11 +1,12 @@
 ---
 title: "Estadística descriptiva con datos del Barómetro de las Américas por LAPOP (1)"
 author: "Arturo Maldonado"
+email: "arturo.maldonado@pucp.pe"
 date: "23/11/2020"
 output: html_document
 ---
-En este documento empezaremos con los aspectos básicos de cómo usar una base de datos de opinión pública para fines estadísticos. 
-En primer lugar, veremos aspectos básicos de cómo describir una variable y cómo graficarla. Para eso, vamos a usar el último informe regional "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. 
+En este documento empezaremos con los aspectos básicos de cómo usar una base de datos de opinión pública para fines estadísticos.
+En primer lugar, veremos aspectos básicos de cómo describir una variable mediante una tabla de distribución de frecuencias y cómo graficar la variable. Para eso, vamos a usar el último informe regional "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. 
 Una de las secciones de este informe, reporta los datos sobre redes sociales y actitudes políticas. En esta sección, se presentan datos sobre el uso de internet y el uso de redes sociales, en general y por país. Con los datos del Barómetro de las Américas se puede saber el % de hogares con celulares, con internet, así como el % de personas que usa Whatsapp, Facebook o Twitter. En este documento vamos a reproducir estos resultados.
 
 ## SOBRE LA BASE DE DATOS
@@ -36,6 +37,8 @@ levels(lapop$smedia4r) <- c("Sí", "No")
 levels(lapop$smedia7r) <- c("Sí", "No")
 ```
 
+## DESCRIBIR LAS VARIABLES
+
 Con las variables listas, ahora procedemos a hacer las tablas generales.
 ```{r tablas}
 table(lapop$smedia1r) #Facebook
@@ -57,29 +60,82 @@ round(prop.table(table(lapop$smedia4r)), 3)*100
 round(prop.table(table(lapop$smedia7r)), 3)*100
 ```
 
+No es práctico presentar 3 tablas, cuando las variables tienen las mismas categorías de respuesta. Es mejor construir una sola tabla. Se puede guardar las tablas parciales y luego unirlas con el comando `rbind`.
+```{r tablajunta}
+Facebook <- round(prop.table(table(lapop$smedia1r)), 3)*100
+Twitter <- round(prop.table(table(lapop$smedia4r)), 3)*100
+Whatsapp <- round(prop.table(table(lapop$smedia7r)), 3)*100
+tabla <- as.data.frame(rbind(Facebook, Twitter, Whatsapp))
+tabla
+```
+
+Para tener una mejor presentación de la tabla, se puede usar el comando `kable` del paquete `knitr`.
+```{r tablamejorada}
+library(knitr)
+kable(head(tabla), format="markdown", digits=1)
+#library(formattable)
+#formattable(tabla)
+```
+
+## GRAFICAR LAS VARIABLES
+
 En la página 54 del reporte se observa que se reportan estos datos en forma gráfica, mediante un gráfico de sectores.
 ```{r pie}
 pie(table(lapop$smedia1r))
 ```
 
-Para tener más opciones gráficas, podemos usar el paquete `ggplot`. 
-```{r grafico}
+Para tener más opciones gráficas, podemos usar el paquete `ggplot` para reproducir el gráfico circular.
+```{r ggpie}
 lapop<- lapop[!is.na(lapop$smedia1r), ]
-library(ggplot2)
-ggplot(data=lapop, aes(x=smedia1r))+
-  geom_bar(aes(y=..prop..*100, group=1), width=0.5)+
-  geom_text(aes(label='stat(prop)*100', group=1), stat='count')+
-  labs(title="¿Qué tan frecuente se usan las redes sociales", x="Usuario de Facebook", y="Porcentaje", caption="Barómetro de las Américas por LAPOP, 2018/19")+
-  coord_cartesian(ylim=c(0, 60))
-
+library(ggplot2) #librería especializada en gráficos
+library(scales) #para formatear las etiquetas en porcentajes
+ggplot(lapop, aes(x=factor(1), fill=smedia1r))+
+  geom_bar(width=1)+
+  coord_polar("y", start=0)
 ```
 
+Sin embargo, para manipular mejor el gráfico es más fácil crear un nuevo dataframe con los datos agregados (frecuencia y %). Luego se usa ese nuevo dataframe para hacer el pie con `ggplot`.
+```{r tablaresumen}
+library(dplyr)
+df <- lapop %>%
+      group_by(smedia1r) %>% 
+      summarise(n = n()) %>%
+      mutate(per=round(n/sum(n), 3)*100, lab.pos=cumsum(per)-0.5*per)
+df
+```
 
-## PARA REPRODUCIR LOS DATOS PONDERADOS
+También se puede usar la siguiente liberería `janitor` y el comando `tabyl` para general la misma tabla.
+```{r tablaresumen2, warning=FALSE}
+library(janitor)
+lapop %>%
+  tabyl(smedia1r)
+```
 
-Estos datos, sin embargo, no consideran el efecto de diseño. La ponderación de los datos se tiene que hacer incluyendo la variable "weight1500".
+Una vez que tenemos la tabla, podemos usarla para trabajar el gráfico circular con `ggplot`.
+```{r ggpie2}
+lapop<- lapop[!is.na(lapop$smedia1r), ] #para eliminar los valores perdidos
+library(ggplot2)
+ggplot(df, aes(x="", y=per, fill=smedia1r))+
+  geom_bar(width=1, stat="identity")+
+  geom_text(aes(y=lab.pos, label=paste(per, "%", sep="")), color="white")+
+  coord_polar("y", start=0)+
+  theme_void()+
+  scale_fill_discrete(name="¿Usa Facebook?")
+```
+
+Si en lugar de un gráfico circular se quiere presentar un gráfico de barras. Con los datos del dataframe "lapop" se puede utilizar el siguiente código:
+```{r barras}
+ggplot(data=lapop, aes(x=smedia1r))+
+  geom_bar(aes(y=..prop..*100, group=1), width=0.5)+
+  labs(title="¿Qué tan frecuente se usan las redes sociales", x="Usuario de Facebook", y="Porcentaje", caption="Barómetro de las Américas por LAPOP, 2018/19")+
+  coord_cartesian(ylim=c(0, 60))
+```
+
+Pero, si queremos usar los datos agrupados del dataframe "df", se puede hacer:
 ```{r}
-round(prop.table(xtabs(weight1500~smedia1, data=lapop)), 3)*100
-round(prop.table(xtabs(weight1500~smedia4, data=lapop)), 3)*100
-round(prop.table(xtabs(weight1500~smedia7, data=lapop)), 3)*100
+ggplot(df, aes(x=smedia1r, y=per))+
+  geom_bar(stat="identity",  width=0.5)+
+  geom_text(aes(label=paste(per, "%", sep="")), color="black", vjust=-0.5)+
+  labs(title="¿Qué tan frecuente se usan las redes sociales", x="Usuario de Facebook", y="Porcentaje", caption="Barómetro de las Américas por LAPOP, 2018/19")+
+  coord_cartesian(ylim=c(0, 60))
 ```
