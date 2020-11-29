@@ -1,0 +1,14 @@
+---
+title: "Estadística descriptiva con datos del Barómetro de las Américas por LAPOP (2)"
+author: "Arturo Maldonado"
+email: "arturo.maldonado@pucp.pe"
+date: "28/11/2020"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
