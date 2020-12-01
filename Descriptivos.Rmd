@@ -16,7 +16,9 @@ Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbaro
 En este enlace, se puede registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
 Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá. Se usa el comando `subset` para filtrar las observaciones de estos países.
 
-```{r base, echo=TRUE}
+```{r base}
+library(haven)
+lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_2004_2018.dta")
 lapop <- subset(lapop, pais<=35)
 ```
 
@@ -46,7 +48,7 @@ table(lapop$smedia4r) #Twitter
 table(lapop$smedia7r) #Whatsapp
 ```
 
-El comando `table`nos devuelve las frecuencias absolutas de las variables. Para obtener las frecuencias relativas, usaremos:
+El comando `table` nos devuelve las frecuencias absolutas de las variables. Para obtener las frecuencias relativas, usaremos:
 ```{r}
 prop.table(table(lapop$smedia1r))
 prop.table(table(lapop$smedia4r))
@@ -69,12 +71,12 @@ tabla <- as.data.frame(rbind(Facebook, Twitter, Whatsapp))
 tabla
 ```
 
-Para tener una mejor presentación de la tabla, se puede usar el comando `kable` del paquete `knitr`.
+Para tener una mejor presentación de la tabla, se puede usar el comando `kable` del paquete `knitr` o el comando `formattable` del paquete del mismo nombre.
 ```{r tablamejorada}
 library(knitr)
 kable(head(tabla), format="markdown", digits=1)
-#library(formattable)
-#formattable(tabla)
+library(formattable)
+formattable(tabla)
 ```
 
 ## GRAFICAR LAS VARIABLES
@@ -95,7 +97,7 @@ ggplot(lapop, aes(x=factor(1), fill=smedia1r))+
 ```
 
 Sin embargo, para manipular mejor el gráfico es más fácil crear un nuevo dataframe con los datos agregados (frecuencia y %). Luego se usa ese nuevo dataframe para hacer el pie con `ggplot`.
-```{r tablaresumen}
+```{r tablaresumen, message=FALSE, warning=FALSE}
 library(dplyr)
 df <- lapop %>%
       group_by(smedia1r) %>% 
@@ -105,7 +107,7 @@ df
 ```
 
 También se puede usar la siguiente liberería `janitor` y el comando `tabyl` para general la misma tabla.
-```{r tablaresumen2, warning=FALSE}
+```{r tablaresumen2, message=FALSE, warning=FALSE}
 library(janitor)
 lapop %>%
   tabyl(smedia1r)
@@ -117,7 +119,7 @@ lapop<- lapop[!is.na(lapop$smedia1r), ] #para eliminar los valores perdidos
 library(ggplot2)
 ggplot(df, aes(x="", y=per, fill=smedia1r))+
   geom_bar(width=1, stat="identity")+
-  geom_text(aes(y=lab.pos, label=paste(per, "%", sep="")), color="white")+
+  geom_text(aes(label=paste(per, "%", sep="")), color="white", hjust=0.5, vjust=1)+
   coord_polar("y", start=0)+
   theme_void()+
   scale_fill_discrete(name="¿Usa Facebook?")
