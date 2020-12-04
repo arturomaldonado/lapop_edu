@@ -49,14 +49,14 @@ table(lapop$smedia7r) #Whatsapp
 ```
 
 El comando `table` nos devuelve las frecuencias absolutas de las variables. Para obtener las frecuencias relativas, usaremos:
-```{r}
+```{r proporciones}
 prop.table(table(lapop$smedia1r))
 prop.table(table(lapop$smedia4r))
 prop.table(table(lapop$smedia7r))
 ```
 
 Sin embargo, el comando `prop.table` nos devuelve demasiados decimales. En general preferimos trabajar con los porcentajes (por eso se multiplica x100) y con 1 decimal (se usa el comando `round`).
-```{r tabla con USA y Canada}
+```{r tabla}
 round(prop.table(table(lapop$smedia1r)), 3)*100
 round(prop.table(table(lapop$smedia4r)), 3)*100
 round(prop.table(table(lapop$smedia7r)), 3)*100
@@ -129,12 +129,12 @@ Si en lugar de un gráfico circular se quiere presentar un gráfico de barras. C
 ```{r barras}
 ggplot(data=lapop, aes(x=smedia1r))+
   geom_bar(aes(y=..prop..*100, group=1), width=0.5)+
-  labs(title="¿Qué tan frecuente se usan las redes sociales", x="Usuario de Facebook", y="Porcentaje", caption="Barómetro de las Américas por LAPOP, 2018/19")+
+  labs(title="¿Qué tan frecuente se usan las redes sociales?", x="Usuario de Facebook", y="Porcentaje", caption="Barómetro de las Américas por LAPOP, 2018/19")+
   coord_cartesian(ylim=c(0, 60))
 ```
 
 Pero, si queremos usar los datos agrupados del dataframe "df", se puede hacer:
-```{r}
+```{r tabla final}
 ggplot(df, aes(x=smedia1r, y=per))+
   geom_bar(stat="identity",  width=0.5)+
   geom_text(aes(label=paste(per, "%", sep="")), color="black", vjust=-0.5)+
