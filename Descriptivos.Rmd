@@ -49,6 +49,7 @@ table(lapop$smedia7r) #Whatsapp
 ```
 
 El comando `table` nos devuelve las frecuencias absolutas de las variables. Para obtener las frecuencias relativas, usaremos:
+<<<<<<< HEAD
 ```{r proporciones}
 prop.table(table(lapop$smedia1r))
 prop.table(table(lapop$smedia4r))
@@ -88,7 +89,7 @@ pie(table(lapop$smedia1r))
 
 Para tener más opciones gráficas, podemos usar el paquete `ggplot` para reproducir el gráfico circular.
 ```{r ggpie}
-lapop<- lapop[!is.na(lapop$smedia1r), ]
+lapop<- lapop[!is.na(lapop$smedia1r), ] #Ojo, este comando elimina las filas con NA, cambiando la base de datos
 library(ggplot2) #librería especializada en gráficos
 library(scales) #para formatear las etiquetas en porcentajes
 ggplot(lapop, aes(x=factor(1), fill=smedia1r))+
