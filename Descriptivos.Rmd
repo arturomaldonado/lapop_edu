@@ -49,14 +49,15 @@ table(lapop$smedia7r) #Whatsapp
 ```
 
 El comando `table` nos devuelve las frecuencias absolutas de las variables. Para obtener las frecuencias relativas, usaremos:
-```{r}
+<<<<<<< HEAD
+```{r proporciones}
 prop.table(table(lapop$smedia1r))
 prop.table(table(lapop$smedia4r))
 prop.table(table(lapop$smedia7r))
 ```
 
 Sin embargo, el comando `prop.table` nos devuelve demasiados decimales. En general preferimos trabajar con los porcentajes (por eso se multiplica x100) y con 1 decimal (se usa el comando `round`).
-```{r tabla con USA y Canada}
+```{r tabla}
 round(prop.table(table(lapop$smedia1r)), 3)*100
 round(prop.table(table(lapop$smedia4r)), 3)*100
 round(prop.table(table(lapop$smedia7r)), 3)*100
@@ -88,7 +89,7 @@ pie(table(lapop$smedia1r))
 
 Para tener más opciones gráficas, podemos usar el paquete `ggplot` para reproducir el gráfico circular.
 ```{r ggpie}
-lapop<- lapop[!is.na(lapop$smedia1r), ]
+lapop<- lapop[!is.na(lapop$smedia1r), ] #Ojo, este comando elimina las filas con NA, cambiando la base de datos
 library(ggplot2) #librería especializada en gráficos
 library(scales) #para formatear las etiquetas en porcentajes
 ggplot(lapop, aes(x=factor(1), fill=smedia1r))+
@@ -134,7 +135,7 @@ ggplot(data=lapop, aes(x=smedia1r))+
 ```
 
 Pero, si queremos usar los datos agrupados del dataframe "df", se puede hacer:
-```{r}
+```{r tabla final}
 ggplot(df, aes(x=smedia1r, y=per))+
   geom_bar(stat="identity",  width=0.5)+
   geom_text(aes(label=paste(per, "%", sep="")), color="black", vjust=-0.5)+
