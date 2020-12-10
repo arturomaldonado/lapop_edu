@@ -1,0 +1,132 @@
+---
+title: "Correlación usando datos del Barómetro de las Américas (1)"
+author: "Arturo Maldonado"
+email: "arturo.maldonado@pucp.pe"
+date: "9/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(error = TRUE)
+```
+
+En este documento veremos los primeros aspectos relacionados al análisis de regresión lineal simple. En particular, se verá el análisis de correlación, el diagrama de dispersión y la recta de regresión.
+
+Para esto, en primer lugar, usaremos el reporte "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. En este informe, se presenta en la página 12 un gráfico de dispersión, que relaciona la variable apoyo a la democracia con el índice de democracia electoral del proyecto [V-Dem](https://www.v-dem.net/en/). 
+Este gráfico no se construirá directamente desde la base de datos del Barómetro de las Américas. Para reproducir este gráfico se agregarán los resultados de la variable ING4. "Cambiando de tema, la democracia puede tener problemas, pero es mejor que cualquiere otra forma de gobierno. ¿En qué medida está de acuerdo o en desacuerdo con esta afirmación?"
+Las personas podían responder en una escala del 1 al 7, donde 1 significa "muy en desacuerdo" y 7 "muy de acuerdo". El reporte indica que las personas con respuestas entre 5 al 7 se les considera como que apoyan a la democracia (por lo tanto, aquellas que calificaban entre 1 al 4 se les puede considerar como que no apoyan a la democracia o son ambivalentes). En el eje X del gráfico 1.3 se presenta el % de personas por país que responden entre 5 y 7. 
+Luego, en la página web del proyecto V-Dem, se puede calcular los puntajes del índice de deocracia electoral para cada país. Ver [aquí](https://www.v-dem.net/en/analysis/VariableGraph/). Por lo tanto, se puede recoger los datos para los 18 países que son parte del reporte "El pulso de la democracia". Estos datos, luego, se pueden descargar en formato .csv. El archivo generado incluye los límites superior e inferior de los intervalos de confianza del puntaje en cada país, por lo que se tiene que eliminar esta información, pues no se utiliza en este análisis. El eje Y del gráfico 1.3 muestra los puntajes del índice de democracia electoral de V-Dem en una escala del 0 al 1. Este archivo .xlsx se puede descargar de [aquí](https://github.com/arturomaldonado/lapop_edu.git).
+Para reproducir este gráfico tenemos que, en primer lugar, agregar los resultados de la variable ING4 para los 18 países seleccionados. Luego unir esta información con los datos del índice de V-Dem que se encuentran en otro archivo .csv, que hay se tiene que guardar en otro dataframe. Pero primero leamos los datos y trabajemos las variables.
+
+## SOBRE LA BASE DE DATOS
+Los datos que vamos a usar deben citarse de la siguiente manera:
+Fuente: Barómetro de las Américas por el Proyecto de Opinión Pública de América Latina (LAPOP), wwww.LapopSurveys.org.
+Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbarometer.org/database/login.php)
+En este enlace, se puede registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
+Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá. Se usa el comando `subset` para filtrar las observaciones de estos países y para filtrar las observaciones de la última ronda del Barómetro de las Américas.
+
+```{r base}
+library(haven)
+lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_2004_2018.dta")
+lapop <- subset(lapop, wave==2018)
+lapop <- subset(lapop, pais<=35)
+```
+
+Una vez que hemos leído la base de datos, trabajamos con la variable país, la convertimos en factor y la etiquetamos.
+```{r pais}
+lapop$pais = as.factor(lapop$pais)
+levels(lapop$pais) <- c("México", "Guatemala", "El Salvador", "Honduras",
+                            "Nicaragua","Costa Rica", "Panamá", "Colombia", 
+                            "Ecuador", "Bolivia", "Perú", "Paraguay", 
+                            "Chile", "Uruguay", "Brasil",
+                            "Argentina", "Rep. Dom.", "Jamaica")
+levels(lapop$pais)
+table(lapop$pais)
+```
+
+
+## AGREGANDO LOS DATOS SOBRE APOYO A LA DEMOCRACIA POR PAÍS
+
+El primer paso es recodificar la variable ING4, de acuerdo a la siguiente regla:
+
+* Valores de ING4 del 1-4 -> 0 en la nueva variable "apoyo"
+* Valores de ING4 del 5-7 -> 100 en la nueva variable "apoyo"
+
+Se usa el valor 100 para que se pueda usar la media como forma de calcular el porcentaje.
+```{r recodificación, message=FALSE, warning=FALSE}
+library(dplyr) #Para usar la función recode
+library(car)
+lapop$ing4 <- as.numeric(lapop$ing4)
+table(lapop$ing4)
+lapop$apoyo <- recode(lapop$ing4, "1:4=0; 5:7=100")
+table(lapop$apoyo)
+```
+
+Es recomendable ver las tablas de frecuencia para comprobar la recodificación. En este caso comprobamos que el nuevo valor de 100 acumula los valores originales de 5+6+7 (5968+4007+5648=15623).
+Con esta nueva variable "apoyo", ahora tenemos que agregar los datos de esta variable por país y guardar esta información en un nuevo dataframe "df".
+```{r datos agregados ing4, message=FALSE, warning=FALSE}
+library(Rmisc) #para poder utilizar el comando summarySE
+df <- summarySE(data=lapop, measurevar="apoyo", groupvar="pais", na.rm=T)
+df
+```
+
+Este comando `summarySE` reporta los estadísticos descriptivos de la variable "apoyo" por país. Se incluye el N de cada país, el promedio (que sería el %), la desviación estándar, el error estándar y el tamaño del intervalo de confianza. En este caso solo requerimos el dato del promedio. Mirando la table, vemos que Uruguay es el país que reporta una mayor proporción de ciudadanos que apoyan a la democracia y además cuenta con la menor desviación estándar, indicando que existe una mayor homogeneidad de las opiniones en comparación con los otros 17 países.
+
+##LEYENDO LOS DATOS DEL PROYECTO V-DEM
+
+El segundo paso es leer los datos del proyecto V-Dem, que se encuentran en un archivo .xlsx en nuestro directorio de trabajo. Además de los datos sobre el índice de democracia electoral para estos 18 países, se ha incluído en este archivo Excel, el código de cada país de acuerdo a LAPOP. Se ha ordenado en el archivo Excel, los datos de acuerdo a este código de país, para que sigan el mismo orden que el dataframe "df".
+Para leer el archivo, usaremos
+```{r importando v-dem}
+library(rio)
+vdem <- import("vdem.xlsx")
+```
+
+Luego, usamos los datos de una columna de este nuevo dataframe, la "vdem2019" y la agregamos al dataframe df que consolida la información sobre apoyo a la democracia por cada pais. Esto lo hacemos con el comando `cbind`.
+```{r uniendo datos}
+df <- cbind(df, vdem$vdem2019)
+colnames(df)[7] <- "vdem2019" #nombramos la columna de manera más manejable. Por defecto se nombra vdem$vdem2019 haciendo que se tenga que usar ´´ para usar este nombre de variable en los códigos
+```
+
+En este dataframe tenemos las dos variables para reproducir el diagrama de `plot`.
+```{r dispersión}
+plot(df$apoyo, df$vdem2019, 
+     xlab="% Supporting Democracy", 
+     ylab="V_Dem Electoral Democracy Index", 
+     pch=19, xlim=c(40, 80), ylim=c(0.2, 1))
+text(df$apoyo, df$vdem2019, labels=df$pais, cex=0.5, pos=3)
+```
+
+Este gráfico de dispersión se puede analizar usando un modelo de regresión lineal simple. 
+```{r modelo}
+modelo <- lm(vdem2019~apoyo, data=df, na.action = na.exclude)
+summary(modelo)
+cor.test(x = df$apoyo, y = df$vdem2019, method = "pearson")
+
+plot(df$apoyo, df$vdem2019, 
+     xlab="% Supporting Democracy", 
+     ylab="V_Dem Electoral Democracy Index", 
+     pch=19, xlim=c(40, 80), ylim=c(0.2, 1))
+text(df$apoyo, df$vdem2019, labels=df$pais, cex=0.5, pos=3)
+abline(modelo)
+```
+
+Con esto, hemos reproducido el gráfico 1.3 del reporte y también hemos calculado el coeficiente de correlación r de Pearson. Según el reporte este coeficiente es de 0.64. En este documento hemos calculado un coeficiente de 0,63. Lo mismo ocurre con los cálculos del % de personas que apoya a la democracia por país.
+La diferencia es que todos estos cálculos no usan la ponderación de los datos que sí se usan en el reporte. En la base de datos del Barómetro se tiene una variable llamada `weight1500` que debe ser usada para reproducir exactamente los cálculos del reporte.
+Más adelante veremos cómo reproducir estos cálculos y gráficos introduciendo la ponderación de los datos.
+Este mismo gráfico se puede reproducir usando el paquete `ggplot`.
+```{r scatter ggplot}
+library(ggplot2)
+ggplot(df, aes(x=apoyo, y=vdem2019))+
+  geom_point()+
+  geom_smooth(method=lm, se=F)+ #agregar línea de regresión
+  geom_text(data=df, aes(label=pais), cex=2.5, nudge_y = 0.02, check_overlap = T)+ #Pata etiquetar los puntos, darles un tamalo, ubicación y prevenir que se sobrepongan
+  labs(x="% Supporting Democracy", y="V-Dem Electoral Democracy Index")+ #para etiquetar los ejes
+  theme_classic()+
+  xlim(40, 80)+
+  ylim(0.2, 1)
+```
+
+Estos resultados nos indican, como dice el reporte, que "a pesar que el análisis aquí es descriptivo y no una prueba de una relación causal, la tendencia es consistente con investigación previa que identifica al apoyo público como un ingrediente crítico para la vitalidad de la democracia" (p. 12, traducción propia).
+Además, viendo el diagrama de dispersión se puede concluir que un mayor apoyo público a la democracia, medido en el Barómetro de las Américas, se correlaciona con un mejor puntaje del índice de democracia electoral de V-Dem. Esto se observa en la pendiente de la recta de regresión, que es positiva.
+El valor del coeficiente r de Pearsons nos indica que existe un ajuste medio de los puntos con respecto a la recta de regresión. Existen países, como Perú, Jamaica y Panamá, que presentan un apoyo público medio a la democracia (alrededor de 50%), pero que tienen puntajes elevados en el índice de democracia electoral (alrededor de 0.8). Esto los coloca por encima de la recta. Del otro lado, existen países como Nicaragua que también cuentan con un apoyo público medio, pero que tienen un bajo puntaje de democracia electoral, ubicando a este país por debajo de la recta de regresión.
+La ubicación de países como Paraguay, México, Argentina o Uruguay, están muy cerca a la recta, indicando que el modelo de regresión explica bien la ubicación de estos países, generando que tengan residuos mínimos.
