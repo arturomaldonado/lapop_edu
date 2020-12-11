@@ -1,0 +1,151 @@
+---
+title: "Regresion usando datos del Barómetro de las Américas (1)"
+author: "Arturo Maldonado"
+email: "arturo.maldonado@pucp.pe"
+date: "10/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+En este documento veremos los aspectos más importantes del análisis de regresión lineal simple. Se partirá de un ejemplo similar al documento de correlación que puede ver [aquí](https://rpubs.com/arturo_maldonado/702432), analizando el gráfico de dispersión y la línea de regresión, pero se añadirá el análisis sobre los resultados de un modelo de regresión lineal simple.
+La idea de este documento es trabajar con los 18 países que se analizaron en el documento de correlación. Esta vez usaremos los datos sobre la letalidad del COVID-19 como variable dependiente y buscaremos en la base de datos del Barómetro de las Américas, variables independientes que puedan explicar las diferencias en la tasa de letalidad (número de muertos por cada millón de habitantes) entre países. 
+
+## SOBRE LOS DATOS
+
+Los datos de afectados por el COVID-19 en América Latina los hemos encontrado en Google. Se realizó una búsqueda "síntomas de Coronavirus en América Latina" y nos llevó a una página web donde se podía encontrar el número de casos y muertes, en total y por cada millón de personas. Esta búsqueda se puede encontrar [aquí](https://g.co/kgs/peSf3K). En esta web se buscaron los datos de cada uno de los 18 países analizados en el reporte "El pulso de la democracia" actualizados al 9 de diciembre de 2020. Estos datos se registraron en un archivo .xlsx, donde si incluye además el código de país que usa LAPOP para luego integrar los datos del COVID-19 con los datos de cultura política de LAPOP.
+En primer lugar cargaremos los datos sobre COVID-19.
+```{r base covid}
+library(rio)
+covid <- import("covid.xlsx")
+covid
+```
+
+Estos datos se cargan en un dataframe. Este dataframe incluye tres variables "country", una variable de tipo "character" con los nombres de los países, la variable "pais" con los códigos LAPOP de cada país, y la variable "covid" con los datos de letalidad (muertes por cada millón de habitantes).
+Luego cargamos la base de datos del Barómetro de las Américas y seleccionamos la última ronda 2018/19 y los 18 países de la muestra.
+```{r base lapop}
+library(haven)
+lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_2004_2018.dta")
+lapop <- subset(lapop, wave==2018)
+lapop <- subset(lapop, pais<=35)
+```
+
+Una vez que hemos leído la base de datos, trabajamos con la variable país, la convertimos en factor y la etiquetamos.
+```{r pais}
+lapop$pais = as.factor(lapop$pais)
+levels(lapop$pais) <- c("México", "Guatemala", "El Salvador", "Honduras",
+                            "Nicaragua","Costa Rica", "Panamá", "Colombia", 
+                            "Ecuador", "Bolivia", "Perú", "Paraguay", 
+                            "Chile", "Uruguay", "Brasil",
+                            "Argentina", "Rep. Dom.", "Jamaica")
+levels(lapop$pais)
+table(lapop$pais)
+```
+
+## AGREGANDO LOS DATOS DE LA VARIABLE INDEPENDIENTE
+
+El cuestionario del Barómetro de las Américas, que se puede ver [aquí](https://www.vanderbilt.edu/lapop/ab2018/AB2018-v12.0-Spa-190131_W.pdf), incluye la variable SD6NEW2. ¿Y con la calidad de los servicios médicos y de salud públicos? ¿Está usted...
+1. Muy satisfecho(a)
+2. Satisfecho(a)
+3. Insatisfecho(a)
+4. Muy insatisfecho(a)
+
+En los siguientes resultados se puede ver la distribución de respuestas a esta variable.
+```{r sd6new2}
+round(prop.table(table(lapop$sd6new2)), 3)*100
+```
+
+Vamos a usar esa pregunta, agregada por país, como variable independiente explicativa de la tasa de letalidad del COVID-19 en los 18 países analizados.
+La hipótesis que manejamos es la evaluación del sistema de sanidad público de los ciudadanos está fuertemente correlacionada con el estado de la sanidad en un país. Es decir, si los ciudadanos tienen una opinión insatisfactoria, es porque el sistema no trabaja bien y, entonces, sería muy probable que este sistema no haya respondido bien a la crisis originada por la pandemia, originando que un país tenga una tasa de letalidad más alta.
+
+Lo primero que tenemos que hacer es recodificar la variable SD6NEW2 de tal manera de recoger la insatisfacción con el sistema de salud, de la siguiente manera:
+
+* Valores 1 y 2 de SD6NEW2 serán 0 en la nueva variable
+* Valores 3 y 4 de SD6NEW2 serán 100 en la nueva variable
+
+```{r recodificación, message=FALSE, warning=FALSE}
+library(dplyr)
+library(car)
+lapop$sd6new2 <- as.numeric(lapop$sd6new2)
+lapop$vi <- recode(lapop$sd6new2, "1:2=0; 3:4=100")
+table(lapop$vi)
+```
+
+Con esta nueva variable "vi", ahora tenemos que agregar los datos de esta variable por país y guardar esta información en un nuevo dataframe "df".
+```{r message=FALSE, warning=FALSE}
+library(Rmisc) #para poder utilizar el comando summarySE
+df <- summarySE(data=lapop, measurevar="vi", groupvar="pais", na.rm=T)
+df
+```
+
+Como se observa, lamentablemente esta variable solo ha sido recogida en 9 de los 18 países incluidos en el análisis. De todas maneras, como vamos a empezar por hacer un análisis de regresión lineal simple, podemos trabajar solo con 9 casos.
+El siguiente paso implica incluir los datos de la variable "vi" en un dataframe con los datos de letalidad del COVID-19.
+```{r}
+covid <- cbind(covid, df$vi)
+colnames(covid)[4] <- "vi" #nombramos la columna de manera más manejable. Por defecto se nombra df$vi haciendo que se tenga que usar ´´ para usar este nombre de variable en los códigos
+covid
+```
+## DIAGRAMA DE DISPERSIÓN Y MODELO DE REGRESIÓN
+
+En este dataframe tenemos la variable "covid" que usaremos como variable dependiente y la variable "vi" (insatisfacción con los servicios de salud) que usaremos como variable independiente. En primer lugar graficamos el diagrama de dispersión.
+```{r scatter}
+plot(covid$vi, covid$covid, 
+     xlab="% de Insatisfacción con los Servicios de Salud", 
+     ylab="Tasa de Letalidad del COVID-19", 
+     pch=19, xlim=c(30, 80), ylim=c(10, 1200))
+text(covid$vi, covid$covid, labels=covid$country, cex=0.5, pos=3)
+```
+
+En este gráfico se observa que podría existir una relación directa, es decir, que países cuyos ciudadanos son más críticos de los servicios de salud tienen, en promedio, una mayor tasa de letalidad.
+Esto lo analizaremos en más detalle con un modelo de regresión lineal simple.
+```{r ols}
+modelo <- lm(covid~vi, data=covid, na.action = na.exclude)
+summary(modelo)
+cor.test(x = covid$vi, y = covid$covid, method = "pearson")
+```
+
+De acuerdo con el test de ANOVA, se obtiene un p-value < 0.05 (0.048), que es el mismo valor que el del coeficiente de la variable independiente. Esto indica que el modelo es válido y que podemos rechazar la hipótesis nula de que la recta de regresión tiene pendiente cero y aceptar la hipótesis alternativa que la pendiente es diferente de cero, indicando una relación entre la variable "insatisfacción con los servicios de salud" y "tasa de letalidad por COVID-19".
+De acuerdo al signo positivo del coeficiente de la variable independiente podemos concluir que efectivamente la relación es directa. De acuerdo a nuestra hipótesis, podemos brindar evidencia que países con mayor insatisfacción con el sistema de salud muestran, en promedio, tasas más altas de letalidad por COVID-19.
+El coeficiente de determinación R nos indica que mediante la variable de insatisfacción con los servicios de salud se explica el 45% de la variación total de la variable de letalidad por COVID-19. El coeficiente r de Pearson, a su vez, indica que las observaciones se ajustan medianamente bien a la recta de predicción.
+La ecuación de la recta de predicción es:
+
+\begin{align*}
+\hat{y} = \alpha + \beta X \\
+\hat{y} = -1059.92 + 26.92*X
+\end{align*}
+
+(OJO: por notación distinguimos $\hat{y}$ que es el valor predicho por el modelo de y que es el valor observado en la realidad)
+
+Con esta ecuación, si calculáramos el valor predicho para Perú sería 789.5 (=-1059.92+26.92*65.6). El valor observado para Perú es 1157, por lo que el error o residuo del modelo para esta obervación es 367.5.
+
+Finalmente, una vez calculado el modelo, podemos también incluir la recta de predicción en el gráfico de dispersión.
+```{r scatter con recta}
+plot(covid$vi, covid$covid, 
+     xlab="% de Insatisfacción con los Servicios de Salud", 
+     ylab="Tasa de Letalidad del COVID-19", 
+     pch=19, xlim=c(30, 80), ylim=c(10, 1200))
+text(covid$vi, covid$covid, labels=covid$country, cex=0.5, pos=3)
+abline(modelo)
+```
+
+## PRESENTACIÓN DE RESULTADOS
+
+Para tener un formato más adecuado de presentación de resultados, podemos usar la librería `jtools`.
+```{r}
+library(jtools)
+summ(modelo)
+```
+
+Tenemos que tomar en cuenta que el objeto "modelo" que se crea con el comando `lm` guarda los vectores de los valores predichos (fitted.values), los residuos (residuals). Para ver los valores predichos, por ejemplo, podemos usar el siguiente código.
+```{r}
+modelo$fitted.values
+```
+
+Y para los residuos:
+```{r}
+modelo$residuals
+```
+
+Con estos datos comprobamos que la diferencia entre el valor observado y el valor predicho para Perú (país 11) es 367.3.
