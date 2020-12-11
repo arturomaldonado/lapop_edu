@@ -74,7 +74,7 @@ table(lapop$vi)
 ```
 
 Con esta nueva variable "vi", ahora tenemos que agregar los datos de esta variable por país y guardar esta información en un nuevo dataframe "df".
-```{r message=FALSE, warning=FALSE}
+```{r datos lapop, message=FALSE, warning=FALSE}
 library(Rmisc) #para poder utilizar el comando summarySE
 df <- summarySE(data=lapop, measurevar="vi", groupvar="pais", na.rm=T)
 df
@@ -82,7 +82,7 @@ df
 
 Como se observa, lamentablemente esta variable solo ha sido recogida en 9 de los 18 países incluidos en el análisis. De todas maneras, como vamos a empezar por hacer un análisis de regresión lineal simple, podemos trabajar solo con 9 casos.
 El siguiente paso implica incluir los datos de la variable "vi" en un dataframe con los datos de letalidad del COVID-19.
-```{r}
+```{r tabla datos juntos}
 covid <- cbind(covid, df$vi)
 colnames(covid)[4] <- "vi" #nombramos la columna de manera más manejable. Por defecto se nombra df$vi haciendo que se tenga que usar ´´ para usar este nombre de variable en los códigos
 covid
@@ -133,19 +133,98 @@ abline(modelo)
 ## PRESENTACIÓN DE RESULTADOS
 
 Para tener un formato más adecuado de presentación de resultados, podemos usar la librería `jtools`.
-```{r}
+```{r tabla}
 library(jtools)
 summ(modelo)
 ```
 
 Tenemos que tomar en cuenta que el objeto "modelo" que se crea con el comando `lm` guarda los vectores de los valores predichos (fitted.values), los residuos (residuals). Para ver los valores predichos, por ejemplo, podemos usar el siguiente código.
-```{r}
+```{r predichos}
 modelo$fitted.values
 ```
 
 Y para los residuos:
-```{r}
+```{r residuos}
 modelo$residuals
 ```
 
 Con estos datos comprobamos que la diferencia entre el valor observado y el valor predicho para Perú (país 11) es 367.3.
+
+## TRABAJANDO CON OTRA VARIABLE INDEPENDIENTE
+
+El cuestionario del Barómetro de las Américas también incluye la pregunta M1. Hablando en general acerca del gobierno actual, ¿diría usted que el trabajo que está realizando el Presidnete [Nombre] es...?
+
+1. Muy bueno
+2. Bueno
+3. Ni bueno, ni malo (regular)
+4. Malo
+5. Muy malo (pésimo)
+
+Esta variable se distribuye de la siguiente manera.
+```{r m1}
+table(lapop$m1)
+```
+
+Podemos argumentar que aquellos que una peor calificación del trabajo del presidente (incluso si ha sido un presidente anterior) significaría que el Ejecutivo no ha trbajado adecuadamente y, por lo tanto, luego esto podría tener consecuencias en la respuesta del Estado frente a la pandemia. 
+Esta variable, entonces, la tenemos que recodificar para capturar la proporción de ciudadnos críticos con el trabajo del presidente en cada país. Para esto usaremos la siguiente regla de recodificación:
+
+* Puntajes del 1 al 3 en la variable m1 se les asignará el valor de 0 en la nueva variable
+* Puntajes de 4 y 5 en m1 se les asignará el valor de 100 en la nueva variable
+
+```{r recodificación 2}
+lapop$m1 <- as.numeric(lapop$m1)
+lapop$vi2 <- recode(lapop$m1, "1:3=0; 4:5=100")
+table(lapop$vi2)
+```
+
+Con esta nueva variable, calculamos el porcentaje de ciudadanos críticos con el trabajo del presidente por país.
+```{r eval. presidente por país}
+df1 <- summarySE(data=lapop, measurevar="vi2", groupvar="pais", na.rm=T)
+df1
+```
+Ahora, se tiene que añadir los datos agregados de esta nueva variable en la base de datos del covid.
+```{r añadiendo nueva vi}
+covid <- cbind(covid, df1$vi2)
+colnames(covid)[5] <- "vi2" #nombramos la columna de manera más manejable. Por defecto se nombra df$vi haciendo que se tenga que usar ´´ para usar este nombre de variable en los códigos
+covid
+```
+
+En la tabla se observa que, contrario a la variable sobre evaluación del sistema de salud, donde solo se tenía información agregada para 9 países, en este caso se cuenta con información para los 18 países evaluados.
+
+## DIAGRAMA DE DISPERSIÓN Y MODELO DE REGRESIÓN DE SEGUNDA VARIABLE INDEPENDIENTE
+
+Con este dataframe "covid" tenemos los datos para calcular el modelo de regresión lineal y el gráfico de dispersión.
+```{r scatter 2}
+plot(covid$vi2, covid$covid, 
+     xlab="% de Mala Evaluación del Presidente", 
+     ylab="Tasa de Letalidad del COVID-19", 
+     pch=19, xlim=c(0, 80), ylim=c(10, 1200))
+text(covid$vi2, covid$covid, labels=covid$country, cex=0.5, pos=3)
+```
+
+A diferencia de la primera variable independiente, en este caso no es tan claro cuál es la relación entre las variables observando el gráfico.
+Para asegurarnos acerca de la relación, se calcula el modelo de regresión lineal.
+```{r ols 2}
+modelo2 <- lm(covid~vi2, data=covid, na.action = na.exclude)
+summary(modelo2)
+cor.test(x = covid$vi2, y = covid$covid, method = "pearson")
+```
+
+En este modelo, el p-value > 0.05 (0.79, tanto el de ANOVA como el del coeficiente) nos lleva a concluir que el modelo no es válido, es decir, que la variable independiente, mala evaluación del presidente, no explica la tasa de letalidad por COVID-19.
+Incluso, mirando el gráfico de dispersión con la recta de predicción, se observa que esta línea tiene una pendiente marginalmente negativa, lo que iría en sentido contrario a la hipótesis planteada. En todo caso, de acuerdo al p-value del coeficiente (es decir, de la pendiente) de la variable independiente, no se puede rechazar la hipótesis nula, que indica que la pendiente es cero.
+
+```{r scatter con recta 2}
+plot(covid$vi2, covid$covid, 
+     xlab="% de Mala Evaluación del Presidente", 
+     ylab="Tasa de Letalidad del COVID-19", 
+     pch=19, xlim=c(0, 80), ylim=c(10, 1200))
+text(covid$vi2, covid$covid, labels=covid$country, cex=0.5, pos=3)
+abline(modelo2)
+```
+
+Visto de manera más ordenada en la siguiente tabla, llegamos a la conclusión que la mala evaluación del presidente no expplica la variación de la tasa de letalidad por país.
+```{r tabla mejorada 2}
+summ(modelo2)
+```
+
+Se puede especular que esta ausencia de relación entre las variable pueda ser debido a que la evaluación del presidente no necesariamente es acerca del presidente que está enfrentando la pandemia. A pesar que los ciudadanos podrían asumir que la buena a mala respuesta del Estado a la pandemia es debida a las gestiones presidenciales recientes, y no solo la última, al parecer no siempre es así. El trabajo de campo de las encuestas del Barómetro de las Américas de 2018/19 recogió información a inicios del 2018 (incluso a finales de 2017), por lo que podría haber pasado hasta 3 años hasta el inicio de la pandemia, pudiendo haber cambiado la administración en ese periodo.
