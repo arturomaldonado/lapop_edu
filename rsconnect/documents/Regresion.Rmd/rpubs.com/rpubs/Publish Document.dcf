@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/702857/b332accb2192470c92660f97fda56525
+bundleId: https://api.rpubs.com/api/v1/document/702857/b332accb2192470c92660f97fda56525
+url: http://rpubs.com/arturo_maldonado/702857
+when: 1607648780.56109
