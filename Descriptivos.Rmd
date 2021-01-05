@@ -103,7 +103,6 @@ df <- subset(lapop, !is.na(smedia1r)) %>%
       group_by(smedia1r) %>% 
       summarise(n = n()) %>%
       mutate(per=round(n/sum(n), 3)*100, lab.pos=cumsum(per)-0.5*per)
-
 df
 ```
 
@@ -114,7 +113,7 @@ subset(lapop, !is.na(smedia1r)) %>%
   tabyl(smedia1r)
 ```
 
-Una vez que tenemos la tabla, podemos usarla para trabajar el gráfico circular con `ggplot`. Nótese que, en este caso, los datos que se usan vienen del dataframe df (no lapop). Este datafreme tiene una columna llamada "per" con los % respectivos que se grafican en el eje Y. Para hacer el gráfico circular, se parte del gráfico de barras (por eso `geom_bar`), que luego se pasa a coordenadas polares (por eso ´`coord_polar`). Finalmente, se agrega texto con los datos de los % y se etiqueta la leyenda con la variable respectiva.
+Una vez que tenemos la tabla, podemos usarla para trabajar el gráfico circular con `ggplot`. Nótese que, en este caso, los datos que se usan vienen del dataframe df (no lapop). Este dataframe tiene una columna llamada "per" con los % respectivos que se grafican en el eje Y. Para hacer el gráfico circular, se parte del gráfico de barras (por eso `geom_bar`), que luego se pasa a coordenadas polares (por eso `coord_polar`). Finalmente, se agrega texto con los datos de los % y se etiqueta la leyenda con la variable respectiva.
 ```{r ggpie2}
 ggplot(data=df, aes(x="", y=per, fill=smedia1r))+
   geom_bar(width=1, stat="identity")+
