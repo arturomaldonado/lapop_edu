@@ -87,7 +87,7 @@ En la página 54 del reporte se observa que se reportan estos datos en forma gr�
 pie(table(lapop$smedia1r))
 ```
 
-Para tener más opciones gráficas, podemos usar el paquete `ggplot` para reproducir el gráfico circular. En este ejemplo, se ha usado el comando `subset` nuevamente, pero dentro de `ggplot` para que el comando (internamente) trabaje con la variable pero sin los valores perdidos. La sintaxis `!is.na()` elimina los valores perdidos de una variableSi se hubiera usado `data=lapop` el gráfico hubiera incluido un gran sector correspondiente a la proporción de NA. Si se hubiera usado `!is.na()` fuera de `ggplot` creando una nueva variable se hubieran eliminado todas las observaciones con valores perdidos, lo que disminuiría el N, afectando futuros cálculos.
+Para tener más opciones gráficas, podemos usar el paquete `ggplot` para reproducir el gráfico circular. En este ejemplo, se ha usado el comando `subset` nuevamente, pero dentro de `ggplot` para que el comando (internamente) trabaje con la variable pero sin los valores perdidos. La sintaxis `!is.na()` elimina los valores perdidos de una variable. Si se hubiera usado `data=lapop` el gráfico hubiera incluido un gran sector correspondiente a la proporción de NA. Si se hubiera usado `!is.na()` fuera de `ggplot` creando una nueva variable se hubieran eliminado todas las observaciones con valores perdidos, lo que disminuiría el N, afectando futuros cálculos.
 ```{r ggpie, message=FALSE, warning=FALSE}
 library(ggplot2) #librería especializada en gráficos
 library(scales) #para formatear las etiquetas en porcentajes
