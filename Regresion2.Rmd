@@ -1,0 +1,54 @@
+---
+title: "Regresion usando datos del Barómetro de las Américas (2)"
+author: "Arturo Maldonado"
+email: "arturo.maldonado@pucp.pe"
+date: "13/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Comprobar que el índice de apoyo al sistema tiene coherencia interna.
+
+```{r alpha}
+library(psych)
+a <- data.frame(lapop$b1, lapop$b2, lapop$b3, lapop$b4, lapop$b6)
+alpha(a)
+```
+
+Primero las diferencias de apoyo al sistema entre sociodemográficos de manera descriptiva.
+
+
+```{r comparativo por país}
+library(ggplot2)
+ss <- summarySE(data=lapop, measurevar="psar", groupvar="pais", na.rm=T)
+graf1 <- ggplot(ss, aes(x=reorder(pais, psar), y=psar)) +
+  geom_bar(width=0.5, fill="purple", colour="black", stat="identity") +
+  geom_errorbar(aes(ymin=psar-ci, ymax=psar+ci), width= 0.2) +
+  geom_text(aes(label=paste(round(psar, 1), "%")), hjust=-0.8, size=2) +
+  xlab("") +
+  ylab("Apoyo al Sistema (escala 0-100)")  +
+  coord_flip()
+graf1
+```
+
+
+```{r}
+lapop$edr <- as.factor(lapop$edr)
+levels(lapop$edr) <- c("Ninguno", "Primaria", "Secundaria", "Post secundaria")
+ssxed <- summarySE(data=lapop, measurevar="psar", groupvar="edr", na.rm=T)
+ssxed <- ssxed[-5,]
+graf2.4 <- ggplot(ssxed, aes(x=edr, y=psar)) +
+  geom_bar(width=0.5, fill="purple", colour="black", stat="identity") +
+  geom_errorbar(aes(ymin=psar-ci, ymax=psar+ci), width= 0.2) +
+  geom_text(aes(label=paste(round(psar, 1), "%")), vjust=-2, size=3) +
+  xlab("Nivel educativo")+
+  ylab("")
+graf2.4
+```
+
+
+

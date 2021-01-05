@@ -2,7 +2,7 @@
 title: "Estadística descriptiva con datos del Barómetro de las Américas por LAPOP (1)"
 author: "Arturo Maldonado"
 email: "arturo.maldonado@pucp.pe"
-date: "23/11/2020"
+date: "23/12/2020"
 output: html_document
 ---
 En este documento empezaremos con los aspectos básicos de cómo usar una base de datos de opinión pública para fines estadísticos.
@@ -13,7 +13,7 @@ Una de las secciones de este informe, reporta los datos sobre redes sociales y a
 Los datos que vamos a usar deben citarse de la siguiente manera:
 Fuente: Barómetro de las Américas por el Proyecto de Opinión Pública de América Latina (LAPOP), wwww.LapopSurveys.org.
 Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbarometer.org/database/login.php)
-En este enlace, se puede registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
+En este enlace, se pueden registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
 Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá. Se usa el comando `subset` para filtrar las observaciones de estos países.
 
 ```{r base}
@@ -25,6 +25,7 @@ lapop <- subset(lapop, pais<=35)
 Las variables con las que se trabajará son: SMEDIA1. ¿Tiene usted cuenta de Facebook?; SMEDIA4. ¿Tiene usted cuenta de Twitter?; SMEDIA7. ¿Tiene usted cuenta de Whatsapp?. Estas preguntas tienen como opciones:
 1. Sí
 2. No
+
 Al momento de leer la base de datos en R, este programa importa las variables como numéricas. Estas variables se tienen que convertir a variables de tipo "factor" y las guardamos en una nueva variable.
 ```{r factor}
 lapop$smedia1r = as.factor(lapop$smedia1)
@@ -49,7 +50,6 @@ table(lapop$smedia7r) #Whatsapp
 ```
 
 El comando `table` nos devuelve las frecuencias absolutas de las variables. Para obtener las frecuencias relativas, usaremos:
-<<<<<<< HEAD
 ```{r proporciones}
 prop.table(table(lapop$smedia1r))
 prop.table(table(lapop$smedia4r))
@@ -63,7 +63,7 @@ round(prop.table(table(lapop$smedia4r)), 3)*100
 round(prop.table(table(lapop$smedia7r)), 3)*100
 ```
 
-No es práctico presentar 3 tablas, cuando las variables tienen las mismas categorías de respuesta. Es mejor construir una sola tabla. Se puede guardar las tablas parciales y luego unirlas con el comando `rbind`.
+No es práctico presentar 3 tablas cuando las variables tienen las mismas categorías de respuesta. Es mejor construir una sola tabla. Se puede guardar las tablas parciales y luego unirlas con el comando `rbind`.
 ```{r tablajunta}
 Facebook <- round(prop.table(table(lapop$smedia1r)), 3)*100
 Twitter <- round(prop.table(table(lapop$smedia4r)), 3)*100
@@ -82,43 +82,41 @@ formattable(tabla)
 
 ## GRAFICAR LAS VARIABLES
 
-En la página 54 del reporte se observa que se reportan estos datos en forma gráfica, mediante un gráfico de sectores.
+En la página 54 del reporte se observa que se reportan estos datos en forma gráfica, mediante un gráfico de sectores. Se puede reproducir ese gráfico usando el comando `pie` que es parte de la sintaxis básica de R.
 ```{r pie}
 pie(table(lapop$smedia1r))
 ```
 
-Para tener más opciones gráficas, podemos usar el paquete `ggplot` para reproducir el gráfico circular.
-```{r ggpie}
-lapop<- lapop[!is.na(lapop$smedia1r), ] #Ojo, este comando elimina las filas con NA, cambiando la base de datos
+Para tener más opciones gráficas, podemos usar el paquete `ggplot` para reproducir el gráfico circular. En este ejemplo, se ha usado el comando `subset` nuevamente, pero dentro de `ggplot` para que el comando (internamente) trabaje con la variable pero sin los valores perdidos. La sintaxis `!is.na()` elimina los valores perdidos de una variableSi se hubiera usado `data=lapop` el gráfico hubiera incluido un gran sector correspondiente a la proporción de NA. Si se hubiera usado `!is.na()` fuera de `ggplot` creando una nueva variable se hubieran eliminado todas las observaciones con valores perdidos, lo que disminuiría el N, afectando futuros cálculos.
+```{r ggpie, message=FALSE, warning=FALSE}
 library(ggplot2) #librería especializada en gráficos
 library(scales) #para formatear las etiquetas en porcentajes
-ggplot(lapop, aes(x=factor(1), fill=smedia1r))+
+ggplot(data=subset(lapop, !is.na(smedia1r)), aes(x="", fill=smedia1r))+
   geom_bar(width=1)+
   coord_polar("y", start=0)
 ```
 
-Sin embargo, para manipular mejor el gráfico es más fácil crear un nuevo dataframe con los datos agregados (frecuencia y %). Luego se usa ese nuevo dataframe para hacer el pie con `ggplot`.
+Sin embargo, para manipular mejor el gráfico es más fácil crear un nuevo dataframe con los datos agregados (frecuencia y %). Luego se usa ese nuevo dataframe para hacer el pie con `ggplot`. Un aspecto a resaltar es que en este caso se está usando el pipe `%>%`, que es una forma (un poco) diferente de escribir códigos en R. Una explicación simple de cómo se usa el pipe se puede encontrar [aquí](https://psyr.djnavarro.net/prelude-to-data.html#124_the_pipe,_%%). Aquí nuevamente se trabaja con un `subset` de la base de lapop donde se elimina los valores perdidos de SMEDIA1 del cálculo de los %.
 ```{r tablaresumen, message=FALSE, warning=FALSE}
 library(dplyr)
-df <- lapop %>%
+df <- subset(lapop, !is.na(smedia1r)) %>%
       group_by(smedia1r) %>% 
       summarise(n = n()) %>%
       mutate(per=round(n/sum(n), 3)*100, lab.pos=cumsum(per)-0.5*per)
+
 df
 ```
 
-También se puede usar la siguiente liberería `janitor` y el comando `tabyl` para general la misma tabla.
+También se puede usar la siguiente librería `janitor` y el comando `tabyl` para general la misma tabla.
 ```{r tablaresumen2, message=FALSE, warning=FALSE}
 library(janitor)
-lapop %>%
+subset(lapop, !is.na(smedia1r)) %>%
   tabyl(smedia1r)
 ```
 
-Una vez que tenemos la tabla, podemos usarla para trabajar el gráfico circular con `ggplot`.
+Una vez que tenemos la tabla, podemos usarla para trabajar el gráfico circular con `ggplot`. Nótese que, en este caso, los datos que se usan vienen del dataframe df (no lapop). Este datafreme tiene una columna llamada "per" con los % respectivos que se grafican en el eje Y. Para hacer el gráfico circular, se parte del gráfico de barras (por eso `geom_bar`), que luego se pasa a coordenadas polares (por eso ´`coord_polar`). Finalmente, se agrega texto con los datos de los % y se etiqueta la leyenda con la variable respectiva.
 ```{r ggpie2}
-lapop<- lapop[!is.na(lapop$smedia1r), ] #para eliminar los valores perdidos
-library(ggplot2)
-ggplot(df, aes(x="", y=per, fill=smedia1r))+
+ggplot(data=df, aes(x="", y=per, fill=smedia1r))+
   geom_bar(width=1, stat="identity")+
   geom_text(aes(label=paste(per, "%", sep="")), color="white", hjust=0.5, vjust=1)+
   coord_polar("y", start=0)+
@@ -128,7 +126,7 @@ ggplot(df, aes(x="", y=per, fill=smedia1r))+
 
 Si en lugar de un gráfico circular se quiere presentar un gráfico de barras. Con los datos del dataframe "lapop" se puede utilizar el siguiente código:
 ```{r barras}
-ggplot(data=lapop, aes(x=smedia1r))+
+ggplot(data=subset(lapop, !is.na(smedia1r)), aes(x=smedia1r))+
   geom_bar(aes(y=..prop..*100, group=1), width=0.5)+
   labs(title="¿Qué tan frecuente se usan las redes sociales?", x="Usuario de Facebook", y="Porcentaje", caption="Barómetro de las Américas por LAPOP, 2018/19")+
   coord_cartesian(ylim=c(0, 60))
@@ -142,3 +140,6 @@ ggplot(df, aes(x=smedia1r, y=per))+
   labs(title="¿Qué tan frecuente se usan las redes sociales", x="Usuario de Facebook", y="Porcentaje", caption="Barómetro de las Américas por LAPOP, 2018/19")+
   coord_cartesian(ylim=c(0, 60))
 ```
+
+## NOTA FINAL
+Los resultados no son exactamente iguales a los del reporte pues LAPOP incluye el efecto del diseño muestral en sus cálculos. Para reproducir los datos exactamente se tiene que incluir este efecto de diseño en R mediante el paquete `survey`. Como esta es una introducción a la estadística descriptiva, no se ha hecho, pero más adelante se incluirá en los cálculos el efecto de diseño.
