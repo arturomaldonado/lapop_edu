@@ -2,16 +2,19 @@
 title: "Estadística descriptiva con datos del Barómetro de las Américas por LAPOP (2)"
 author: "Arturo Maldonado"
 email: "arturo.maldonado@pucp.pe"
-date: "28/11/2020"
+date: "07/01/2021"
 output: html_document
 ---
+
+En este documento vamos a seguir usar el último informe regional "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. 
+Una de las secciones de este informe, reporta los datos sobre redes sociales y actitudes políticas. En esta sección, se presentan datos sobre el uso de internet y el uso de redes sociales, en general y por país. En este caso vamos a trabajar con la frecuencia de uso de las redes sociales.
 
 # SOBRE LA BASE DE DATOS
 Los datos que vamos a usar deben citarse de la siguiente manera:
 Fuente: Barómetro de las Américas por el Proyecto de Opinión Pública de América Latina (LAPOP), wwww.LapopSurveys.org.
 Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbarometer.org/database/login.php)
-En este enlace, se puede registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
-Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá. Se usa el comando `subset` para filtrar las observaciones de estos países.
+En este enlace se puede registrar o entrar como "Free User". En el buscador se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
+Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte con el que seguimos trabajando no incluye a EE.UU. y a Canadá. Se usa el comando `subset` para filtrar las observaciones de estos países.
 
 ```{r base}
 library(haven)
@@ -19,7 +22,8 @@ lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_
 lapop <- subset(lapop, pais<=35)
 ```
 
-En el documento 1 sobre estadística descriptiva, que se puede descargar [aquí](https://rpubs.com/arturo_maldonado/696770), se trabajó con variables nominales, con opciones de respuesta dicotómica Sí/No. En este documento se va a trabajar con variables ordinales. De esta manera, se va a usar la variable SMEDIA2.¿Con qué frecuencia ve contenido en Facebook?, SMEDIA5.¿Con qué frecuencia ve contenido en Twitter? y SMEDIA8.¿Con qué frecuencia usa Whatsapp?. Estas variables tienen como opciones de respuesta:
+En el documento 1 sobre estadística descriptiva, que se puede ver [aquí](https://rpubs.com/arturo_maldonado/696770), se trabajó con variables nominales, con opciones de respuesta dicotómica Sí/No. En este documento se va a trabajar con variables ordinales. De esta manera, se va a usar la variable SMEDIA2.¿Con qué frecuencia ve contenido en Facebook?, SMEDIA5.¿Con qué frecuencia ve contenido en Twitter? y SMEDIA8.¿Con qué frecuencia usa Whatsapp?. Estas variables tienen como opciones de respuesta:
+
 1. Diariamente
 2. Algunas veces a la semana
 3. Algunas veces al mes
@@ -28,7 +32,7 @@ En el documento 1 sobre estadística descriptiva, que se puede descargar [aquí]
 
 ## DESCRIBIR LAS VARIABLES
 
-De la misma manera que con las variables nominales, estas variables tienen que ser declaradas como "factor" en una nueva variable.
+De la misma manera que con las variables nominales, estas variables tienen que ser declaradas como "factor" en nuevas variables.
 ```{r factor}
 lapop$smedia2r = as.factor(lapop$smedia2)
 lapop$smedia5r = as.factor(lapop$smedia5)
@@ -51,14 +55,14 @@ table(lapop$smedia5r)
 table(lapop$smedia8r)
 ```
 
-Para producir las tablas con porcentajes.
+Para producir las tablas con porcentajes, redondeados a un decimal.
 ```{r porcentajes}
 round(prop.table(table(lapop$smedia2r)), 3)*100
 round(prop.table(table(lapop$smedia5r)), 3)*100
 round(prop.table(table(lapop$smedia8r)), 3)*100
 ```
 
-Para presentar todos los datos en una tabla conjunta
+Para presentar todos los datos en una tabla conjunta.
 ```{r tabla básica}
 Facebook <- round(prop.table(table(lapop$smedia2r)), 3)*100
 Twitter <- round(prop.table(table(lapop$smedia5r)), 3)*100
@@ -76,16 +80,16 @@ formattable(tabla)
 ```
 
 Para graficar, se replica el código usado en el documento anterior para hacer la tabla resumen y el gráfico de pie.
-```{r tabla y gráfico}
+```{r tabla y gráfico, message=FALSE, warning=FALSE}
 library(dplyr)
 df <- lapop %>%
       filter(!is.na(smedia2r)) %>%
       group_by(smedia2r) %>% 
-      dplyr::summarise(n = n()) %>%
+      summarise(n = n()) %>%
       mutate(per=round(n/sum(n), 3)*100, lab.pos=cumsum(per)-0.5*per)
 df
 library(ggplot2)
-ggplot(df, aes(x="", y=per, fill=smedia2r))+
+ggplot(data=df, aes(x="", y=per, fill=smedia2r))+
   geom_bar(width=1, stat="identity")+
   geom_text(aes(label=paste(per, "%", sep="")), color="white", hjust=0.5, vjust=1)+
   coord_polar("y", start=0)+
@@ -101,13 +105,14 @@ ggplot(df, aes(x=smedia2r, y=per))+
   labs(title="¿Qué tan frecuente se usan las redes sociales", x="Frecuencia de uso", y="Porcentaje", caption="Barómetro de las Américas por LAPOP, 2018/19")+
   coord_cartesian(ylim=c(0, 60))
 ```
+
 Hasta aquí se ha replicado las tablas y gráficos que se usaron con las variables nominales, ahora usando variables ordinales.
 
 ## CRUCE DE VARIABLES
 
-En la página 55 del reporte "El pulso de la democracia" se presenta los porcentajes de uso de las redes sociales por país. Para replicar esta tabla primero se tiene que definir la variable `pais` y las variables de uso de redes sociales.
+En la página 55 del reporte "El pulso de la democracia" se presenta los porcentajes de uso de las redes sociales por país. Para replicar esta tabla primero se tiene que definir la variable "pais" y las variables de uso de redes sociales (smedia1, smedia4 y smedia7).
 Luego, en la página 56 se presenta un cuadro con el % de usuarios de redes sociales por características sociodemográficas, por ejemplo, urbano/rural, hombre, edad promedio, riqueza promedio y años de estudio. 
-Empezaremos replicando el cuadro de uso de redes sociales por país.
+Empezaremos replicando el cuadro de uso de redes sociales por país, para lo cual, primero, se definen las variables y se etiquetan. Se presentan las tablas de distribución de frecuencias como paso preliminar para comprobar nuestras operaciones.
 ```{r país}
 lapop$smedia1r = as.factor(lapop$smedia1)
 lapop$smedia4r = as.factor(lapop$smedia4)
@@ -134,7 +139,7 @@ table(lapop$smedia7r) #Whatsapp
 lapop$hombre <- 2-lapop$q1
 ```
 
-En primer lugar, se crean tablas bivariadas entre cada red social y país. Estas tablas presentan el % de quienes usan y el % de los que no usan cada red social.
+En primer lugar, se crean las tablas bivariadas entre cada red social y país. Estas tablas presentan el % de quienes usan y el % de los que no usan cada red social.
 Estas tablas se guardan en objetos de R. Luego se unen estos objetos usando los comandos `as.data.frame` para unir las tablas como un dataframe y `cbind` para juntar las columnas.
 Esta tabla presenta datos de países que no tienen información de las variables sobre redes sociales. Para presentar una tabla que incluya solo a los países que tienen información en estas variables, se eliminan estas filas de país sin información y también se eliminan las columnas que registran los % de los que No usan estas redes sociales.
 Finalmente, se cambia el nombre de las columnas del dataframe.
@@ -162,14 +167,51 @@ formattable(tablapais)
 
 En la página 58 del reporte "El pulso de la democracia" se presenta los resultados del cruce entre las variables uso de redes sociales y variables sociodemográficas como urbano/rural, sexo, edad, riqueza y años de educación.
 La variable urbano/rural se llama "ur" en la base de datos y está codificada de la siguiente manera:
+
 1. Urbano
 2. Rural
 
 En la base de datos también se cuenta con una recodificación de esta variable. La variable recodificada "urban" está codificada se la siguiente manera:
+
 0. Rural
 1. Urbano
 
+En primer lugar se presentará las tablas cruzadas, para entender mejor cómo se construye la tabla general. Por ejemplo, el reporte muestra, luego de la columna de población general, las columnas para usuarios y no usuarios de Whatsapp (variable "smedia7r") y en las filas, la primera corresponde a urbano (variable "urban", donde 0 es rural y 1 urbano)
+```{r tabla WhxUr}
+round(prop.table(table(lapop$urban, lapop$smedia7r), 2)*100, 1)
+```
 
+Esto se puede ver mejor en un gráfico de barras agrupadas. Lo primero que haremos es crear una tabla con los datos agrupados. Se agrupa tanto por uso de Whatsapp como por urbano/rural, es decir, en cuatro combinaciones. En cada subgrupo se calcula el n. Dado que los % se tienen que calcular por cada grupo de "smedia7r", se veulve a agrupar y se calcula los % de cada subgrupo, de tal manera que los % sumen 100% en cada subgrupo de "smedia7r".
+Con la tabla lista, se usa el comando `ggplot` definiendo que "smedia7r" sea la variable en el eje X, que el eje Y sea el % y que los subgrupos se formen por la variable "urbano". Se usa la especificación `dodge` para tener las barras separadas por cada grupo.
+```{r tabla y gráfico agrupado}
+lapop$urbano = as.factor(lapop$urban)
+levels(lapop$urbano) <- c("Rural", "Urbano")
+face <- subset(lapop, !is.na(smedia7r)) %>% #Se usa !is.na para que no se reporte los NA en la tabla
+  group_by(smedia7r, urbano) %>% #Se configuran los grupos
+  count() %>% #Se calcula el n
+  group_by(smedia7r) %>% #
+  mutate(porcentaje = round(n/sum(n), 3)*100)
+face
+ggplot(data=face, aes(x=smedia7r, y=porcentaje, fill=urbano))+
+  geom_bar(position="dodge", stat="identity")+
+  geom_text(aes(label=paste(porcentaje, "%", sep="")), position=position_dodge(0.9), vjust=-0.5)+
+  ylab("Porcentaje")+
+  xlab("Usuario de Whatsapp")
+```
+
+En este caso las barras celestes indican los porcentajes reportados en la tabla 3.2 del reporte y  corresponde a la proporción de personas que viven en el ámbito urbano entre los usuarios ("Sí") y los no usuarios ("No").
+Para que quede claro, ahora se presentará la tabla  entre usuarios de Facebook (variable "smedia1r") y hombre (variable "hombre"), pero presentando solo los % usado en la tabla y ahora usando el estilo de código "pipe".
+```{r tabl FbxHombre, message=FALSE, warning=FALSE}
+tabla1 <- subset(lapop, !is.na(smedia1r)) %>% #Para no incluir al grupo de NA de smedia1r
+  group_by(smedia1r) %>%
+  summarise(hombre=mean(hombre, na.rm=T)) #Se incluye na.rm=T porque hombre tiene NAs
+tabla1
+```
+
+Nuevamente, se reporta solo estos porcentajes en la tabla 3.2 del reporte. 
+Como se indicó, en [este](https://rpubs.com/arturo_maldonado/696770) documento, los resultados no son exactamente iguales porque en estos ejercicios no estamos tomando en cuenta el efecto de diseño muestral. Es por este motivo que aquí se calcula que la proporción de hombres entre los usuarios de Facebook es 49.8%, cuando en el reporte se indica 49.7%.
+Con esto en mente, lo que se hará es crear una tabla donde se calcule cada uno de esos porcentajes parciales. En el siguiente código se ingresa en cada celda de un dataframe la proporción de personas que viven en el ámbito urbano y la proporción de hombres, por usuario/no usuario de cada red social.
+Solo vamos a trabajar con las variables categóricas "urban" y "hombre" y no con edad, riqueza o años de estudio para no tener una tabla tan extensa, pero el procedimiento con estas variables numéricas sería idéntico.
 ```{r sociodemográficos}
 df1 <- lapop %>%
         filter(smedia1==1) %>% 
@@ -215,8 +257,8 @@ tablasoc <- as.data.frame(df1)
 varnames <- c("Usuario de Facebook", "No usuario de Facebook", "Usuario de Twitter", 
               "No usuario de Twitter", "Usuario de Whatsapp", "No usuario de Whatsapp")
 colnames(tablasoc) <- varnames
-tablasoc
 row.names(tablasoc) <- c("Urbano (%)", "Hombre (%)")
+tablasoc
 ```
 
 Con la tabla formateada, se puede presentar de esta manera.
@@ -225,3 +267,7 @@ kable(head(tablasoc), format="markdown", digits=1)
 formattable(tablasoc)
 ```
 
+De esta manera se ha reproducido (parcialmente) la tabla 3.2 del reporte, que es un resumen de varias tablas de contingencia entre las variables categóricas de uso de redes sociales y variables sociodemográficas, como sexo y urbano.
+
+# RESUMEN
+En este documento se ha trabajado con variable categóricas ordinales, como la frecuencia de uso de redes sociales. También se ha introducido al uso de tablas de contingencia de dos variables categóricas y la creación de gráficos de barras agrupadas para 2 variables.
