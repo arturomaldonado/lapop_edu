@@ -1,0 +1,107 @@
+---
+title: "Estadística descriptiva con datos del Barómetro de las Américas por LAPOP (3)"
+author: "Arturo Maldonado"
+email: "arturo.maldonado@pucp.pe"
+date: "8/1/2021"
+output: html_document
+---
+
+En este documento veremos aspectos básicos de cómo describir una variable numérica. Para eso, vamos a seguir usando el último informe regional "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. 
+Una de las secciones de este informe, reporta los datos sobre redes sociales y actitudes políticas. En esta sección, se presentan datos sobre el uso de internet y el uso de redes sociales, en general, por país y por ciertas características sociodemográficas.
+
+## SOBRE LA BASE DE DATOS
+
+Los datos que vamos a usar deben citarse de la siguiente manera:
+Fuente: Barómetro de las Américas por el Proyecto de Opinión Pública de América Latina (LAPOP), wwww.LapopSurveys.org.
+Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbarometer.org/database/login.php)
+En este enlace, se puede registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
+Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá. Se usa el comando `subset` para filtrar las observaciones de estos países y para filtrar las observaciones de la última ronda del Barómetro de las Américas.
+
+```{r base}
+library(haven)
+lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_2004_2018.dta")
+lapop <- subset(lapop, wave==2018)
+lapop <- subset(lapop, pais<=35)
+```
+
+## DESCRIPTIVOS PARA UNA VARIABLE NUMÉRICA
+
+En la tabla 3.2 del reporte "El pulso de la democracia" se presentan los promedios generales de las variables edad ("q2" en la base de datos), riqueza ("quintall" en la base de datos) y años de estudio ("ed" en la base de datos) para la población general. Se usa el comando `mean` para calcular el promedio y se usa `na.rm=T` debido a que estas variables cuentan con valores perdidos.
+```{r media}
+mean(lapop$q2, na.rm=T)
+mean(lapop$quintall, na.rm=T)
+mean(lapop$ed, na.rm=T)
+```
+
+Estos son los datos que se presentan en la primera columna de resultados de la población general. Aquí se puede incluir algunas gráficas básicas, por ejemplo, usando el comando `hist` se puede reproducir el histograma de la variable "años de educación" (ed).
+```{r histograma simple}
+hist(lapop$ed)
+```
+
+Este mismo gráfico se puede reproducir usando el comando `ggplot`. Con este comando se tiene más flexibilidad con las opciones gráficas. Por ejemplo, con este código se puede cambiar el tamaño de la barra.
+```{r gghist, message=FALSE, warning=FALSE}
+library(ggplot2)
+ggplot(lapop, aes(x=ed))+
+  geom_histogram(binwidth = 2)+
+  xlab("Años de educación")+
+  ylab("Frecuencia")+
+  theme_bw()
+```
+
+De una forma más sofisticada, en lugar de mostrar las frecuencias absolutas (eje Y muestra "count"), se puede mostrar las frecuencias relativas (eje Y muestra "density"). También se puede agregar el gráfico de densidad.
+```{r gghist mejorado, message=FALSE, warning=FALSE}
+ggplot(lapop, aes(x=ed))+
+  geom_histogram(aes(y=..density..), colour="black", fill="white", binwidth = 2)+
+  geom_density(alpha=0.2, fill="#FF6666")+
+  xlab("Años de educación")+
+  ylab("Proporción")+  
+  theme_bw()
+```
+
+En la página 56 del reporte, se presentan la media de estas variables numéricas por grupos de las variables relacionadas a las redes sociales. Es decir, por ejemplo, el promedio de años de estudio para los que usan Facebook y para los que no usan Facebook.
+
+```{r media años de estudio por FB, message=FALSE, warning=FALSE}
+lapop$estudio = as.numeric(lapop$ed)
+lapop$smedia1r = as.factor(lapop$smedia1)
+levels(lapop$smedia1r) <- c("Sí", "No")
+library(psych)
+describeBy(lapop$estudio, lapop$smedia1r)
+```
+
+La media de años de estudio para las personas que sí tiene Facebook es 11.4 y para los que no es de 8 (este último valor difiere del resultado del reporte -8.2- por no incluir los efectos del diseño muestral en este análisis).
+Esta misma información se puede obtener usando el modo de códigos del pype y se puede guardar en una tabla. Esta tabla puede guardar los datos de la edad promedio para los usuarios y no usuarios de Whatsapp y además la desviación estándar de cada grupo.
+```{r media años x Whatsapp, message=FALSE, warning=FALSE}
+library(dplyr)
+lapop$smedia7r = as.factor(lapop$smedia7)
+levels(lapop$smedia7r) <- c("Sí", "No")
+whatxedad <- lapop %>%
+  filter(!is.na(smedia7r)) %>%
+  group_by(smedia7r) %>%
+  summarise(promedio = mean(q2, na.rm=T), sd = sd(q2, na.rm=T))
+whatxedad
+```
+
+El reporte no lo muestra, pero se pueden presentar gráficos para cada grupo para facilitar la comparación de una variable.
+
+```{r hist media años x Whatsapp, message=FALSE, warning=FALSE}
+lapop %>%
+  filter(!is.na(smedia7r)) %>%
+  ggplot(aes(x=q2))+
+  geom_histogram()+
+  facet_wrap(~smedia7r)+
+  xlab("Edad")+
+  ylab("Frecuencia")
+```
+
+Otra forma de comparar la distribución de edad por grupos de usuarios o no usuarios de Whatsapp es mediante un gráfico de cajas o boxplot.
+```{r boxplot edad x Whatsapp, message=FALSE, warning=FALSE}
+lapop %>%
+  filter(!is.na(smedia7r)) %>%
+  ggplot(aes(x=smedia7r, y=q2))+
+  geom_boxplot()+
+  xlab("Usuario de Whatsapp")+
+  ylab("Edad")
+```
+
+# RESUMEN
+En este documento se ha trabajado con variable numéricas, como edad o años de estudio. Se ha calculado estadísticos descriptivos, como la media o la desviación estándar para toda la población o por grupos. Finalmente, se ha presentado formas de graficas estas variables, mediante histogramas o boxplots.
