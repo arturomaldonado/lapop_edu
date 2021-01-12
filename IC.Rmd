@@ -96,20 +96,20 @@ tapply(lapop$pn4rr, lapop$smedia9r, mean, na.rm=T) #Whatsapp
 ```
 
 Otra opción que puede presentar tanto la media como la desviación estándar es mediante la librería `plyr` y el comando `ddply`. El código solo para Facebook sería:
-```{r por grupo2}
+```{r por grupo2, message=FALSE, warning=FALSE}
 library(plyr)
 ddply(lapop, "smedia3r", summarise, mean=mean(pn4rr, na.rm=T), sd=sd(pn4rr, na.rm=T))
 ```
 
 Finalmente, una opción que permite mostrar muchos estadísticos por cada grupo es `describeBy` de la librería `psych`. El código para Twitter es:
-```{r por grupo 3}
+```{r por grupo 3, message=FALSE, warning=FALSE}
 library(psych)
 describeBy(lapop$pn4rr, group=lapop$smedia6r)
 ```
 
 Sin embargo, lo que nos interesa es calcular los intervalos de confianza para cada grupo. En el gráfico 3.9 del reporte se presenta la media de satisfacción con la democracia, graficado con un punto, y los intervalos de confianza de cada grupo, graficado con un área gris con límites inferior y superior.
 Se puede usar la librería `Rmisc` y el comando `group.CI` para calcular los intervalos de confianza de la variable satisfacción con la democracia por grupos de consumo de información política en Facebook.
-```{r ci por grupo}
+```{r ci por grupo, message=FALSE, warning=FALSE}
 library(Rmisc)
 group.CI(pn4rr~smedia3r, lapop)
 ```
@@ -119,7 +119,7 @@ Con estos datos, por ejemplo, la media de satisfacción con la democracia entre 
 ## GRAFICAR LOS INTERVALOS DE CONFIANZA
 
 La forma más fácil de graficar los intervalos de confianza por grupos es usando el comando `plotmeans`. 
-```{r gráficos por grupos}
+```{r gráficos por grupos, message=FALSE, warning=FALSE}
 library(gplots)
 plotmeans(lapop$pn4rr~lapop$smedia6r,
           xlab="Tipo de usuario de Twitter",
@@ -132,8 +132,9 @@ plotmeans(lapop$pn4rr~lapop$smedia6r,
 
 Esta opción muestra los intervalos de confianza pero se dificulta si se quiere graficar las barras. La librería `ggplot` nos brinda más opciones gráficas, nos permite graficar de manera similar al gráfico 3.9 del reporte, en barras, presentar los intervalos de confianza y agregar color a las barras.
 Para esto, primero se guarda un dataframe "tw.uso" con los datos de la media y los límites superior e inferior de cada grupo, usando el comando `group.CI`. Son los datos de este dataframe los que se usan con `ggplot` y se crea un gráfico que se guarda en un objeto "graf1".
-```{r gráficos por grupos 2}
+```{r gráficos por grupos 2, message=FALSE, warning=FALSE}
 tw.uso <- group.CI(pn4rr~smedia6r, lapop)
+library(ggplot2)
 graf1 <- ggplot(tw.uso, aes(x=smedia6r, y=pn4rr.mean))+
   geom_bar(width=0.5, fill="darkcyan", colour="black", stat="identity")+
   geom_errorbar(aes(ymin=pn4rr.lower, ymax=pn4rr.upper), width=0.2)+
