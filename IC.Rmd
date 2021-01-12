@@ -1,0 +1,158 @@
+---
+title: "Intervalos de confianza con datos del Barómetro de las Américas por LAPOP"
+author: "Arturo Maldonado"
+date: "11/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+En este documento veremos como construir intervalos de confianza de la media usando los datos del Barómetro de las Américas. Para eso, vamos a seguir usando el último informe regional "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. 
+Una de las secciones de este informe, reporta los datos sobre redes sociales y actitudes políticas. En particular, se reporta, en el gráfico 3.9, el grado de satisfacción con la democracia por tipo de usuario de redes sociales.
+
+## SOBRE LA BASE DE DATOS
+
+Los datos que vamos a usar deben citarse de la siguiente manera:
+Fuente: Barómetro de las Américas por el Proyecto de Opinión Pública de América Latina (LAPOP), wwww.LapopSurveys.org.
+Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbarometer.org/database/login.php)
+En este enlace, se puede registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
+Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá. Se usa el comando `subset` para filtrar las observaciones de estos países y para filtrar las observaciones de la última ronda del Barómetro de las Américas.
+
+```{r base}
+library(haven)
+lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_2004_2018.dta")
+lapop <- subset(lapop, wave==2018)
+lapop <- subset(lapop, pais<=35)
+```
+
+## DESCRIPTIVOS DE LA VARIABLE SATISFACCIÓN CON LA DEMOCRACIA
+
+El gráfico 3.9 presenta el % de entrevistados que está satisfecho con la democracia por tipo de usuarios de redes sociales. La variable satisfacción con la democracia es "pn4" y está codificada se la siguiente manera:
+1. Muy satisfecho
+2. Satisfecho
+3. Insatisfecho
+4. Muy insatisfecho
+
+La nota 21 indica "Se codifica a los entrevistados que seleccionan (1) o (2) como satisfechos con la democracia". Por lo tanto, se tiene que recodificar esta variable. En este caso se usa el comando `recode` y se tabula, mediante `table`, para verificar la recodificación.
+```{r recodificar, message=FALSE, warning=FALSE}
+library(dplyr)
+library(car)
+lapop$pn4 <- as.numeric(lapop$pn4)
+table(lapop$pn4)
+lapop$pn4rr <- recode(lapop$pn4, "1:2=100; 3:4=0")
+table(lapop$pn4rr)
+```
+
+La nueva variable "pn4rr" es una variable dummy. En este tipo de variables, la media corresponde a la proporción de respuestas 100. Es decir, si calculamos la media de esta variable, se está calculando el porcentaje para todos los entrevistados.
+```{r describir}
+summary(lapop$pn4rr)
+```
+
+Estos resultados muestran una media de 39.5, es decir el 39.5% de los entrevistados están satisfechos con la democracia. Se puede calcular también el intervalo de confianza de esta variable de varias formas.
+```{r IC}
+t.test(lapop$pn4rr)
+library(lsr)
+ciMean(lapop$pn4rr, na.rm=T)
+```
+
+## SATISFACCIÓN CON LA DEMOCRACIA POR GRUPOS DE CONSUMO DE INFORMACIÓN POLÍTICA
+
+El informe usa una variable que mide la "exposición frecuente a información política". Esta variable se construye de una manera compleja, sobre la base de las 3 redes sociales por las que se pregunta.
+En este caso vamos a empezar con una recodificación más simple para recrear los intervalos de confianza de la variable "satisfacción de la democracia" por grupo de frecuencia de consumo de información política de cada red social. Luego se procederá a replicar la variable que se usa en el reporte.
+La frecuencia de consumo de información política (variables "smedia3" para Facebook, "smedia6" para Twitter y "smedia9" para Whatsapp) de cada red social se mide en la siguiente escala:
+
+1. Diariamente
+2. Algunas veces a la semana
+3. Algunas veces al mes
+4. Algunas veces al año
+5. Nunca
+
+Vamos a recodificar estas variables de tal manera que aquellos que responden diariamente serán clasificados como de "alto uso", aquellos que responden del 2 al 4 serán clasificados como de "bajo uso" y aquellos que responden "nunca" serán clasificados como "no usuarios".
+```{r recodificación}
+table(lapop$smedia3)
+table(lapop$smedia6)
+table(lapop$smedia9)
+lapop$smedia3r <- recode(lapop$smedia3, "1=1; 2:4=2; 5=3")
+lapop$smedia6r <- recode(lapop$smedia6, "1=1; 2:4=2; 5=3")
+lapop$smedia9r <- recode(lapop$smedia9, "1=1; 2:4=2; 5=3")
+lapop$smedia3r <- as.factor(lapop$smedia3r)
+lapop$smedia6r <- as.factor(lapop$smedia6r)
+lapop$smedia9r <- as.factor(lapop$smedia9r)
+levels(lapop$smedia3r) <- c("Alto uso", "Bajo uso", "No usuario")
+levels(lapop$smedia6r) <- c("Alto uso", "Bajo uso", "No usuario")
+levels(lapop$smedia9r) <- c("Alto uso", "Bajo uso", "No usuario")
+table(lapop$smedia3r)
+table(lapop$smedia6r)
+table(lapop$smedia9r)
+```
+
+Con estas variables recodificadas, se puede calcular las medias (que son los porcentajes) de satisfacción con la democracia por cada grupo de consumo de información política. Esto se puede hacer de múltiples maneras. Si se requiere comparas las medias, se puede usar el comando `tapply`.
+```{r por grupo 1}
+tapply(lapop$pn4rr, lapop$smedia3r, mean, na.rm=T) #Facebook
+tapply(lapop$pn4rr, lapop$smedia6r, mean, na.rm=T) #Twitter
+tapply(lapop$pn4rr, lapop$smedia9r, mean, na.rm=T) #Whatsapp
+```
+
+Otra opción que puede presentar tanto la media como la desviación estándar es mediante la librería `plyr` y el comando `ddply`. El código solo para Facebook sería:
+```{r por grupo2}
+library(plyr)
+ddply(lapop, "smedia3r", summarise, mean=mean(pn4rr, na.rm=T), sd=sd(pn4rr, na.rm=T))
+```
+
+Finalmente, una opción que permite mostrar muchos estadísticos por cada grupo es `describeBy` de la librería `psych`. El código para Twitter es:
+```{r por grupo 3}
+library(psych)
+describeBy(lapop$pn4rr, group=lapop$smedia6r)
+```
+
+Sin embargo, lo que nos interesa es calcular los intervalos de confianza para cada grupo. En el gráfico 3.9 del reporte se presenta la media de satisfacción con la democracia, graficado con un punto, y los intervalos de confianza de cada grupo, graficado con un área gris con límites inferior y superior.
+Se puede usar la librería `Rmisc` y el comando `group.CI` para calcular los intervalos de confianza de la variable satisfacción con la democracia por grupos de consumo de información política en Facebook.
+```{r ci por grupo}
+library(Rmisc)
+group.CI(pn4rr~smedia3r, lapop)
+```
+
+Con estos datos, por ejemplo, la media de satisfacción con la democracia entre el grupo de alto uso de información política en Facebook es 36.1%. El límite inferior es 34.7% y el límite superior es 37.6%. Con estos datos se podría replicar un gráfico de barras similar al 3.9.
+
+## GRAFICAR LOS INTERVALOS DE CONFIANZA
+
+La forma más fácil de graficar los intervalos de confianza por grupos es usando el comando `plotmeans`. 
+```{r gráficos por grupos}
+library(gplots)
+plotmeans(lapop$pn4rr~lapop$smedia6r,
+          xlab="Tipo de usuario de Twitter",
+          ylab="Satisfacción con la democracia",
+          ylim=c(0, 50),
+          mean.labels=T, digits=1,
+          connect=F
+         )
+```
+
+Esta opción muestra los intervalos de confianza pero se dificulta si se quiere graficar las barras. La librería `ggplot` nos brinda más opciones gráficas, nos permite graficar de manera similar al gráfico 3.9 del reporte, en barras, presentar los intervalos de confianza y agregar color a las barras.
+Para esto, primero se guarda un dataframe "tw.uso" con los datos de la media y los límites superior e inferior de cada grupo, usando el comando `group.CI`. Son los datos de este dataframe los que se usan con `ggplot` y se crea un gráfico que se guarda en un objeto "graf1".
+```{r gráficos por grupos 2}
+tw.uso <- group.CI(pn4rr~smedia6r, lapop)
+graf1 <- ggplot(tw.uso, aes(x=smedia6r, y=pn4rr.mean))+
+  geom_bar(width=0.5, fill="darkcyan", colour="black", stat="identity")+
+  geom_errorbar(aes(ymin=pn4rr.lower, ymax=pn4rr.upper), width=0.2)+
+  geom_text(aes(label=paste(round(pn4rr.mean, 1), "%")), vjust=-3.5, size=4)+
+  xlab("Tipo de usuario de Twitter") + ylab("Satisfacción con la democracia (%)")+
+  ylim(0, 50)
+graf1
+```
+
+## RESUMEN
+En este documento se ha trabajado con una variable dummy (satisfacción con la democracia), la que puede ser trabajada como variable numérica para el cálculo de proporciones. Con esta variable se ha calculado el intervalo de confianza de la media. Luego, se ha descrito esta variables por grupos de una variable de factor (consumo de información política). Se ha presentado cómo calcular los intervalos de confianza de la variable numérica por grupos de la variable de factor. Finalmente, se ha presentado cómo graficas los intervalos de confianza por grupos.
+
+## NOTA
+En este documento falta el código para replicar exactamente la variable "exposición frecuente a información política" que se presenta en el gráfico 3.9 del reporte "El pulso de la democracia". En una próxima actualización de este documento se agregará ese acápite.
+
+
+
+
+
+
+
+
