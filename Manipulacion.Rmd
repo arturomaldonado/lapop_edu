@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## INTRODUCCIÓN
 En este documento se verán aspectos básico de la manipulación de datos, como la recodificación de una variable, la selección de datos y el cálculo de una nueva variable.
 
 ## SOBRE LA BASE DE DATOS
