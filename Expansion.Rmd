@@ -18,37 +18,36 @@ Fuente: Barómetro de las Américas por el Proyecto de Opinión Pública de Amé
 Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbarometer.org/database/login.php)
 En este enlace, se pueden registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
 Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. 
-
+En este documento se carga una base de datos recortada. Esta base de datos se encuentra alojada en el repositorio "materials_edu" de la cuenta de LAPOP en GitHub.
 ```{r base}
-library(haven)
-lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_2004_2018.dta")
+library(rio)
+lapop18 <- import("https://raw.github.com/lapop-central/materials_edu/main/LAPOP_AB_Merge_2018_v1.0.sav")
 ```
 
 ## SOBRE EL USO DE LOS FACTORES DE EXPANSIÓN
 Cuando un investigador abre una base de datos en cualquier programa estadístico, el software asume que los datos provienen de un muestro simple aleatorio. Cuando se trabaja con datos de opinión pública, como los datos del Barómetro de las Américas, el diseño muestral generalmente no es un muestreo simple aleatorio, sino un diseño complejo, con estratificaciones, segmentaciones, cuotas, en diferentes etapas. 
 Como indica el reporte técnico de la ronda 2018/19 del Barómetro de las América, disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/AmericasBarometer_2018-19_Technical_Report_W_102919.pdf), las muestras en cada país fueron diseñadas usando un diseño probabilístico multietapa (con cuotas al nivel de hogares para la mayoría de países), y fueron estratificadas por regiones principales en el país, tamaño de la municipalidad y por áreas urbanas y rurales dentro de las municipalidades.
 Este diseño muestral complejo se tiene que incorporar generalmente en los cálculos. En ciertas ocasiones si no se incopora puede llevar a diferencias en los resultados. Una explicación más detallada sobre el uso de los factores de expansión y las potenciales consecuencias de no usarlos con los datos del Barómetro de las Américas puede ser leída en la Nota Metodológica 007 (Castorena, 2021), disponible [aquí](https://www.vanderbilt.edu/lapop/insights/IMN007es.pdf).
-Este documento describe tres escenarios de usos de factores de expansión:
+Esta Nota Metodológica describe tres escenarios de usos de factores de expansión:
+
 1. Ajuste post estratificación: cuando la muestra no es autoponderada y se desvía de ciertas características sociodemográficas importantes. En la base de datos, esta característica se ajusta con la variable "estratopri".
 2. Ajuste por sobremuestreo: cuando la muestra incluye una sobremuestra de subpoblaciones de interés. En la base de datos, esta característica se ajusta con la variable "wt".
 3. Ajuste de múltiples encuestas: cuando se analiza datos de varios países o diferentes rondas. La variable ponderadora en la base de datos es "weight1500", que estandariza las muestras de cada país a 1,500 observaciones.
 
 ## CONSECUENCIAS DE NO USAR FACTORES DE EXPANSIÓN
-Como indica la Nota metodológica, "los análisis sin ponderar pueden resultar en estimaciones sesgadas" (p.9). Por ejemplo, en el documento sobre manipulación de datos replicamos los resultados sobre el apoyo a la democracia en Honduras (45%) y Uruguay (76.2%). Primero se calculó la variable recodificada y se filtraron los datos para seleccionar las observaciones de la última ronda 2018/19.
+Como indica la Nota metodológica, "los análisis sin ponderar pueden resultar en estimaciones sesgadas" (p.9). Por ejemplo, en el documento sobre manipulación de datos replicamos los resultados sobre el apoyo a la democracia en Honduras (45%) y Uruguay (76.2%), para lo que  se calculó la variable recodificada .
 ```{r manipulación}
-lapop$ing4rec <- car::recode(lapop$ing4, "1:4=0; 5:7=1")
-lapop18 <- lapop[lapop$wave == 2018, ]
-table(lapop18$wave)
-dim(lapop18)
+lapop18$ing4rec <- car::recode(lapop18$ing4, "1:4=0; 5:7=1")
+table(lapop18$ing4rec)
 ```
 
-Con este dataframe se puede calcular la distribución del apoyo a la democracia en estos dos países y se puede reportar los porcentajes redondeado.
+En este dataframe se puede calcular la distribución del apoyo a la democracia en estos dos países y se puede reportar los porcentajes redondeado.
 ```{r Honduras y Uruguay}
 round(prop.table(table(lapop18$ing4rec[lapop18$pais==4]))*100, 1)
 round(prop.table(table(lapop18$ing4rec[lapop18$pais==14]))*100, 1)
 ```
 
-Se observa que estos resultados son iguales a los que aparecen en el Gráfico 1.2 del reporte "El Pulso de la Democracia" (p.12), disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf). Esto es esperable porque, como indica la Tabla 5 de la Nota Metodológica, ambos países tienen un diseño muestral autoponderado, por lo que estos calculos aquí, que no incluyen el diseño, coinciden con los del reporte, que sí incluyen el factor de expansión.
+Se observa que estos resultados son iguales a los que aparecen en el Gráfico 1.2 del reporte "El Pulso de la Democracia" (p.12), disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf). Esto es esperable porque, como indica la Tabla 5 de la Nota Metodológica, ambos países tienen un diseño muestral autoponderado, por lo que estos cálculos aquí, que no incluyen el diseño, coinciden con los del reporte, que sí incluyen el factor de expansión.
 Un caso diferente es el de Brasil que, según la Nota Metodológica, tiene un diseño muestral ponderado, por lo que sí requeriría usar el factor de expansión para ajustar la sobremuestra en el diseño.
 Si se calcula el descriptivo del apoyo a la democracia en Brasil sin incluir el factor de expansión se obtiene un resultado distinto al del reporte.
 ```{r Brasil}
@@ -65,10 +64,10 @@ library(descr)
 compmeans(lapop18$ing4rec, lapop18$pais, lapop18$weight1500, plot=FALSE)
 ```
 
-De acuerdo a estos resultados, vemos que Brasil, pais 15, tiene un apoyo a la democracia de 0.599975. Si transformamos este número en porcentaje, aproximando a 1 decimal, reproducimos el valor de 60% que se observa en el Gráfico 1.2 del reporte. No solo eso, además, se observa que para el resto de países, los datos se replican. Por ejemplo, para México, país 1, esta table muestra un apoyo a la democracia de 0.6272307, o, en porcentaje aproximado a 1 decimal, 62.7%, igual al dato del reporte.
+De acuerdo a estos resultados, vemos que Brasil, pais 15, tiene un apoyo a la democracia de 0.599975. Si transformamos este número en porcentaje, aproximando a 1 decimal, reproducimos el valor de 60% que se observa en el Gráfico 1.2 del reporte. No solo eso, además, se observa que para el resto de países, los datos se replican. Por ejemplo, para México, país 1, esta tabla muestra un apoyo a la democracia de 0.6272307, o, en porcentaje aproximado a 1 decimal, 62.7%, igual al dato del reporte.
 
 Otra forma de replicar los resultados incorporando el efecto de diseño es usando el paquete `survey`, paquete especialmente desarrollado para trabajar con diseños muestrales complejos. 
-La Nota Metodológica incluye un apéndice con el código en STATA para usar los factores de expansión en los datos del Barómetro de las Américas. Aquí haremos lo mismo en R, para lo cual usaremos el comando `svydesign` (similar al comando svyset en STATA).
+La Nota Metodológica incluye un apéndice con el código de STATA para usar los factores de expansión en los datos del Barómetro de las Américas. Aquí haremos lo mismo en R, para lo cual usaremos el comando `svydesign` (similar al comando svyset en STATA).
 Con este comando se crea un nuevo objeto llamado "lapop.design", que guarda la información de las variables incluyendo el factor de expansión. Por tanto, si luego se creara una nueva variable, se tendría que correr nuevamente esté comando para que este objeto "lapop.design" incluya esta nueva variable.
 ```{r expansión con survey, message=FALSE, warning=FALSE}
 library(survey)

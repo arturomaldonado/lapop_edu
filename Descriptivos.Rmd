@@ -5,7 +5,7 @@ email: "arturo.maldonado@pucp.pe"
 date: "23/12/2020"
 output: html_document
 ---
-En este documento empezaremos con los aspectos básicos de cómo usar una base de datos de opinión pública para fines estadísticos.
+En este documento empezaremos con los aspectos básicos de cómo usar la base de datos del Barómetro de las Américas de LAPOP para fines estadísticos.
 En primer lugar, veremos aspectos básicos de cómo describir una variable mediante una tabla de distribución de frecuencias y cómo graficar la variable. Para eso, vamos a usar el último informe regional "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. 
 Una de las secciones de este informe, reporta los datos sobre redes sociales y actitudes políticas. En esta sección, se presentan datos sobre el uso de internet y el uso de redes sociales, en general y por país. Con los datos del Barómetro de las Américas se puede saber el % de hogares con celulares, con internet, así como el % de personas que usa Whatsapp, Facebook o Twitter. En este documento vamos a reproducir estos resultados.
 
@@ -14,19 +14,19 @@ Los datos que vamos a usar deben citarse de la siguiente manera:
 Fuente: Barómetro de las Américas por el Proyecto de Opinión Pública de América Latina (LAPOP), wwww.LapopSurveys.org.
 Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbarometer.org/database/login.php)
 En este enlace, se pueden registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
-Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá. Se usa el comando `subset` para filtrar las observaciones de estos países.
+Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá y se centra en la ronda 2018/19. Se usa el comando `subset` para filtrar las observaciones de estos países y de esa última ronda.
 
 ```{r base}
 library(haven)
 lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_2004_2018.dta")
-lapop <- subset(lapop, pais<=35)
+lapop <- subset(lapop, pais<=35 & wave==2018)
 ```
 
 Las variables con las que se trabajará son: SMEDIA1. ¿Tiene usted cuenta de Facebook?; SMEDIA4. ¿Tiene usted cuenta de Twitter?; SMEDIA7. ¿Tiene usted cuenta de Whatsapp?. Estas preguntas tienen como opciones:
 1. Sí
 2. No
 
-Al momento de leer la base de datos en R, este programa importa las variables como numéricas. Estas variables se tienen que convertir a variables de tipo "factor" y las guardamos en una nueva variable.
+Al momento de leer la base de datos en R, este programa importa las variables como "dbl+lbl", que la mayoría de funciones en R trata como numéricas. Estas variables se tienen que convertir a variables de tipo "factor" pues son variables categóricas, las que guardamos en una nueva variable.
 ```{r factor}
 lapop$smedia1r = as.factor(lapop$smedia1)
 lapop$smedia4r = as.factor(lapop$smedia4)
@@ -39,6 +39,19 @@ levels(lapop$smedia1r) <- c("Sí", "No")
 levels(lapop$smedia4r) <- c("Sí", "No")
 levels(lapop$smedia7r) <- c("Sí", "No")
 ```
+
+## CALCULAR LAS VARIABLES DE USUARIOS DE REDES SOCIALES
+
+```{r}
+lapop$fb_user <- ifelse(lapop$smedia1==1 & lapop$smedia2<=4, 1, 0)
+prop.table(table(lapop$fb_user))
+lapop$tw_user <- ifelse(lapop$smedia4==1 & lapop$smedia5<=4, 1, 0)
+prop.table(table(lapop$tw_user))
+lapop$wa_user <- ifelse(lapop$smedia7==1 & lapop$smedia8<=4, 1, 0)
+prop.table(table(lapop$wa_user))
+```
+
+
 
 ## DESCRIBIR LAS VARIABLES
 
@@ -72,13 +85,25 @@ tabla <- as.data.frame(rbind(Facebook, Twitter, Whatsapp))
 tabla
 ```
 
-Para tener una mejor presentación de la tabla, se puede usar el comando `kable` del paquete `knitr` o el comando `formattable` del paquete del mismo nombre.
-```{r tablamejorada}
+Para tener una mejor presentación de la tabla, se puede usar el comando `kable` del paquete `knitr`.
+```{r tablamejorada, results='asis'}
 library(knitr)
-kable(head(tabla), format="markdown", digits=1)
-library(formattable)
-formattable(tabla)
+knitr::kable(tabla, format="markdown")
 ```
+
+## DESCRIBIR LAS VARIABLES TOMANDO EN CUENTA EL EFECTO DE DISEÑO
+
+Los resultados presentados no son exactamente iguales a los del reporte pues LAPOP incluye el efecto del diseño muestral en sus cálculos. Según esta sintaxis, se encuentra que el 57.1% de entrevistados reporta ser usuario de Facebook, cuando en el reporte aparece 56.2%. Lo mismo con Twitter, que aquí se calcula en 8.8% y en el reporte 7.9%; y con Whatsapp que aquí aparece con 64.6% y en el reporte con 64.4%. 
+Como se indicó en el documento sobre el uso de los factores de expansión usando los datos del Barómetro de las Américas (disponible [aquí](https://rpubs.com/arturo_maldonado/728626)), hay varias maneras de reproducir los resultados incorporando el efecto de diseño.
+Para reproducir los datos exactamente se tiene que incluir este efecto de diseño en R mediante el paquete `survey`. Como esta es una introducción a la estadística descriptiva, no se ha hecho, pero más adelante se incluirá en los cálculos el efecto de diseño.
+
+```{r}
+library(descr)
+descr::freq(lapop$fb_user, lapop$weight1500)
+descr::freq(lapop$tw_user, lapop$weight1500)
+descr::freq(lapop$wa_user, lapop$weight1500)
+```
+
 
 ## GRAFICAR LAS VARIABLES
 
@@ -144,4 +169,4 @@ ggplot(df, aes(x=smedia1r, y=per))+
 En este documento se ha trabajado con variables categóricas nominales, como si usa o no usa redes sociales. Se ha presentando las formas de cómo graficar estas variables, mediante gráficos circulares o de barras.
 
 ## NOTA FINAL
-Los resultados no son exactamente iguales a los del reporte pues LAPOP incluye el efecto del diseño muestral en sus cálculos. Para reproducir los datos exactamente se tiene que incluir este efecto de diseño en R mediante el paquete `survey`. Como esta es una introducción a la estadística descriptiva, no se ha hecho, pero más adelante se incluirá en los cálculos el efecto de diseño.
+
