@@ -1,6 +1,7 @@
 ---
 title: "Estadística descriptiva con datos del Barómetro de las Américas por LAPOP (1)"
 author: "Arturo Maldonado"
+<<<<<<< HEAD
 email: "arturo.maldonado@pucp.pe"
 date: "23/02/2021"
 output: html_document
@@ -10,13 +11,27 @@ output: html_document
 En este documento empezaremos con los aspectos básicos de cómo usar la base de datos del Barómetro de las Américas de LAPOP para fines estadísticos.
 En primer lugar, veremos aspectos básicos de cómo describir una variable mediante una tabla de distribución de frecuencias y cómo graficar la variable. Para eso, vamos a usar el último informe regional "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. 
 Una de las secciones de este informe, reporta los datos sobre redes sociales y actitudes políticas. En esta sección, se presentan datos sobre el uso de internet y el uso de redes sociales, en general y por país. Con los datos del Barómetro de las Américas se puede saber el % de hogares con acceso a celulares, con acceso a internet, así como el % de personas que usa Whatsapp, Facebook o Twitter. En este documento vamos a reproducir estos resultados.
+=======
+date: "8/3/2020"
+output: html_document
+---
+En este documento empezaremos con los aspectos básicos de cómo usar la base de datos del Barómetro de las Américas de LAPOP para fines estadísticos. En primer lugar, veremos aspectos básicos de cómo describir una variable mediante una tabla de distribución de frecuencias y cómo graficar la variable. Para eso, vamos a usar el último informe regional "El pulso de la democracia", disponible [aquí](https://www.vanderbilt.edu/lapop/ab2018/2018-19_AmericasBarometer_Regional_Report_Spanish_W_03.27.20.pdf), donde se presentan los principales hallazgos de la ronda 2018/19 del Barómetro de las Américas. 
+Una de las secciones de este informe, reporta los datos sobre redes sociales y actitudes políticas. En esta sección, se presentan datos sobre el uso de internet y el uso de redes sociales, en general y por país. Con los datos del Barómetro de las Américas se puede saber el % de hogares con celulares, con internet, así como el % de personas que usa Whatsapp, Facebook o Twitter. En este documento vamos a reproducir estos resultados.
+>>>>>>> ae2c914a3c1531f0c2f2bb48e6613b3e1af59ce4
 
 ## Sobre la base de datos
 Los datos que vamos a usar deben citarse de la siguiente manera:
 Fuente: Barómetro de las Américas por el Proyecto de Opinión Pública de América Latina (LAPOP), wwww.LapopSurveys.org.
 Pueden descargar los datos de manera libre  [aquí](http://datasets.americasbarometer.org/database/login.php)
+<<<<<<< HEAD
 En este enlace, se pueden registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "2018". Ahí se tendrá acceso a la base de datos completa "2018 LAPOP AmericasBarometer Merge_v1.0.dta" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta. Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. En este documento se carga una base de datos recortada. Esta base de datos se encuentra alojada en el repositorio "materials_edu" de la cuenta de LAPOP en GitHub. Mediante la librería `rio` y el comando `import` se puede importar esta base de datos desde este repositorio. Además, se seleccionan los datos de países con códigos menores o iguales a 35, es decir, se elimina las observaciones de Estados Unidos y Canadá.
 ```{r base}
+=======
+En este enlace, se pueden registrar o entrar como "Free User". En el buscador, se puede ingresar el texto "merge". Ahí se tendrá acceso a la base de datos completa "2004-2018 Grand Merge Free" en versión para STATA. Se descarga la base de datos en formato zip, la que se descomprime en formato .dta.
+Una vez descargada y guardada en el directorio de trabajo, se tiene que leer la base de datos como un objeto dataframe en R. Adicionalmente, el reporte no incluye a EE.UU. y a Canadá y se centra en la ronda 2018/19. Se usa el comando `subset` para filtrar las observaciones de estos países y de esa última ronda.
+
+```{r base, message=FALSE, warning=FALSE}
+>>>>>>> ae2c914a3c1531f0c2f2bb48e6613b3e1af59ce4
 library(rio)
 lapop18 <- import("https://raw.github.com/lapop-central/materials_edu/main/LAPOP_AB_Merge_2018_v1.0.sav")
 lapop18 <- subset(lapop18, pais<=35)
@@ -41,12 +56,24 @@ levels(lapop18$smedia4r) <- c("Sí", "No")
 levels(lapop18$smedia7r) <- c("Sí", "No")
 ```
 
+<<<<<<< HEAD
 ## Calcular las variables de usuarios de redes sociales
 Como vimos en el documento anterior, se puede calcular nuevas variables con valores condicionales de otras variables usando el comando `ifelse`. De esta manera, se crea la variable de usuarios de redes sociales.
 ```{r usuarios}
 lapop18$fb_user <- ifelse(lapop18$smedia1==1 & lapop18$smedia2<=4, 1, 0)
 lapop18$tw_user <- ifelse(lapop18$smedia4==1 & lapop18$smedia5<=4, 1, 0)
 lapop18$wa_user <- ifelse(lapop18$smedia7==1 & lapop18$smedia8<=4, 1, 0)
+=======
+## CALCULAR LAS VARIABLES DE USUARIOS DE REDES SOCIALES
+
+```{r}
+lapop18$fb_user <- ifelse(lapop18$smedia1==1 & lapop18$smedia2<=4, 1, 0)
+prop.table(table(lapop18$fb_user))
+lapop18$tw_user <- ifelse(lapop18$smedia4==1 & lapop18$smedia5<=4, 1, 0)
+prop.table(table(lapop18$tw_user))
+lapop18$wa_user <- ifelse(lapop18$smedia7==1 & lapop18$smedia8<=4, 1, 0)
+prop.table(table(lapop18$wa_user))
+>>>>>>> ae2c914a3c1531f0c2f2bb48e6613b3e1af59ce4
 ```
 
 ## Describir las variable
