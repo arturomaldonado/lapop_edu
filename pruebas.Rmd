@@ -1,0 +1,108 @@
+---
+title: "Prueba"
+author: "Arturo Maldonado"
+date: "2/22/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+    filename = "Peru_LAPOP_final 2006 National data set 092906.tab",
+```{r}
+dataset <- get_dataset("doi:10.7910/DVN/ARKOTI")
+dataset$files[c("filename", "contentType")]
+```
+
+
+```{r}
+library(readr)
+myfile <- "https://raw.github.com/arturomaldonado/lapop_edu/main/covid.csv"
+covid <- read_csv(myfile)
+
+```
+
+```{r}
+library(rio)
+vdem <- import("https://raw.github.com/arturomaldonado/lapop_edu/main/vdem.xlsx")
+```
+
+```{r}
+library(rio)
+lapop <- import("https://raw.github.com/arturomaldonado/lapop_edu/main/Peru_LAPOP16.sav")
+```
+
+
+
+
+
+```{r}
+library(haven)
+peru_merge <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/Peru LAPOP merge 2006-2019 (v1.0).dta")
+
+```
+
+Para eliminar columnas de la base original
+```{r}
+lapop18 <- lapop18[-c(20:30, 78:118, 122:124, 130:187, 190:268, 303:358, 416:421, 449:451, 467:471, 476:478, 482:511, 516:524, 535:543, 562:593, 595:628, 651:657, 681:692, 737:742)]
+```
+
+Segunda eliminación de columnas
+```{r}
+lapop18 <- lapop18[-c(28, 50, 53, 66, 69, 89:93, 97:105, 119, 120, 125:137, 156, 170:187, 207:209, 221:230, 240:247, 252:272, 289:295, 313, 317, 319, 321, 323, 376:378)]
+```
+
+tercera
+```{r}
+lapop18 <- lapop18[-c(13, 14, 20:30, 36, 37, 54, 56, 57, 59, 62, 63, 67:69, 72:77, 87:93, 105, 109, 118:126, 138, 141, 148:150, 154:161, 164, 170:174, 176, 177, 181, 183, 193, 213, 218, 231, 238, 240, 241, 246, 249:261, 263:268)]
+```
+
+cuarta
+```{r}
+lapop18 <- lapop18[-c(17, 18, 19, 30:46, 57:61, 68:78, 90, 92:96, 100, 103, 104, 114, 115, 121, 135:140, 145, 159:161, 164:172)]
+```
+
+quinta
+```{r}
+lapop18 <- lapop18[-c(3, 28:35, 51, 52, 58, 59, 61, 67:68, 71, 87:89, 105)]
+```
+
+```{r}
+library(haven)
+write_sav(lapop18, "LAPOP_AB_Merge_2018_v1.0.sav")
+```
+
+```{r}
+library(rio)
+lapop18 <- import("https://raw.github.com/lapop-central/materials_edu/main/LAPOP_AB_Merge_2018_v1.0.sav")
+```
+
+
+
+```{r base}
+library(haven)
+lapop <- read_dta("/Users/Arturo/OneDrive - Vanderbilt/C LAPOP/Data/LAPOP_Merge_2004_2018.dta")
+```
+
+```{r}
+readr::write_tsv(lapop, "lapop.tsv.gz")
+```
+
+
+```{r}
+pb_upload("lapop.tsv.gz",
+          repo = "arturomaldonado/lapop",
+          tag = "v1.0")
+```
+
+```{r}
+pb_download("lapop.tsv.gz",
+            repo = "arturomaldonado/lapop",
+            tag = "v1.0")
+```
+
+```{r}
+lapop <- readr::read_tsv("lapop.tsv.gz")
+```
+
