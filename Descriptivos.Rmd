@@ -5,6 +5,9 @@ email: "arturo.maldonado@pucp.pe"
 date: "23/02/2021"
 output: html_document
 ---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 ## Introducción
 En este documento empezaremos con los aspectos básicos de cómo usar la base de datos del Barómetro de las Américas de LAPOP para fines estadísticos.
