@@ -166,3 +166,4 @@ formattable(tablasoc)
 ```
 
 De esta manera se ha reproducido (parcialmente) la tabla 3.2 del reporte, que es un resumen de varias tablas de contingencia entre las variables categóricas de uso de redes sociales y variables sociodemográficas, como sexo y urbano.
+

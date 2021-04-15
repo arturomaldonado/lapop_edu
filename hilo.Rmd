@@ -1,0 +1,132 @@
+---
+title: "Hilo"
+author: "Arturo Maldonado"
+date: "4/5/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Análisis encuesta off-cycle Peru 2020
+
+Leyendo la base 
+```{r}
+library(haven)
+per20 <- read_dta("~/OneDrive - Vanderbilt/C LAPOP/Data/PER_2020_(v1-0)_w.dta")
+```
+
+## Confianza en elecciones
+
+Creando nueva variable alta confianza en elecciones
+```{r}
+per20$b47ar <- car::recode(per20$b47a, "1:4=0; 5:7=1")
+```
+
+Describir valor promedio de alta confianza
+```{r}
+library(descr)
+descr::freq(per20$b47ar, per20$wt, plot=F)
+```
+
+Apoyo relativamente bajo (39.6%), aunque medianamente estable en el tiempo (según gráfico en el ppt).
+
+# Confianza en las elecciones por sexo
+```{r message=FALSE, warning=FALSE}
+library(descr)
+compmeans(per20$b47ar, per20$q1tb, per20$wt, plot=FALSE)
+```
+
+No hay diferencias significativas en la confianza en elecciones entre hombre y mujeres.
+
+Creando la variable grupos de edad
+```{r}
+per20$edad <- car::recode(per20$q2, "18:25=1; 26:35=2; 36:45=3; 46:55=4; 56:65=5; 66:88=6")
+```
+
+# Confianza en las elecciones por grupos de edad
+```{r message=FALSE, warning=FALSE}
+compmeans(per20$b47ar, per20$edad, per20$wt, plot=FALSE)
+```
+
+Un porcentaje más alto de mayores tienen una confianza alta en las elecciones.
+
+Recodificando educación
+```{r}
+per20$educ <- car::recode(per20$ed, "1:6=1; 7:11=2; 12:18=3")
+```
+
+Confianza en elecciones por educación
+```{r message=FALSE, warning=FALSE}
+compmeans(per20$b47ar, per20$educ, per20$wt, plot=FALSE)
+```
+
+Mayor confianza en elecciones entre los menos educados.
+
+## Justificación de que candidatos no acepten resultados de elecciones
+
+Se suman las dos variables que miden la justificación de que candidatos no acepten resultados de elecciones (viewsr2a y viewsr2b) en una sola variable. Las variables originales están separadas por un diseño experimental.
+```{r}
+per20$view2 <- rowSums(cbind(per20$viewsr2a, per20$viewsr2b), na.rm=T)
+descr::freq(per20$view2, per20$wt, plot=F)
+```
+
+Justificación según sexo
+```{r message=FALSE, warning=FALSE}
+compmeans(per20$view2, per20$q1tb, per20$wt, plot=FALSE)
+```
+
+Mayor justificación entre mujeres
+
+Justificación por grupos de edad
+```{r message=FALSE, warning=FALSE}
+compmeans(per20$view2, per20$edad, per20$wt, plot=FALSE)
+```
+
+No es clara la relación
+
+Justificación por niveles educativos
+```{r message=FALSE, warning=FALSE}
+compmeans(per20$view2, per20$educ, per20$wt, plot=FALSE)
+```
+
+Mayor justificación entre los menos educados.
+
+## Describiendo justificación a que candidatos no acepten resultados según experimento
+```{r}
+descr::freq(per20$viewsr2a, per20$wt, plot=F)
+```
+
+Un alto porcentaje de peruanos justifica esta medida en el primer grupo experimental.
+
+```{r}
+descr::freq(per20$viewsr2b, per20$wt, plot=F)
+```
+
+Ese alto porcentaje cae en el segundo grupo experimental.
+
+Existe una diferencia radical en la justificación de que candidatos no acepten resultados de elecciones entre aquellos que respondieron primero las preguntas sobre si los votos son contados justamente, si los ricos compran las elecciones o si los políticos pueden averiguar por quién votan los electores (batería COUNTFAIR) antes de la pregunta de justificación y aquellos que primero respondieron sobre justificación y luego la batería. 
+En el primer grupo, el 67.2% justifica que candidatos puedan desconocer los resultados de las elecciones. En el segundo grupo, solo 28.7% justifica una actitud como esa.
+
+
+## Justificación a que candidatos no acepten resultados por sexo en el primer grupo
+```{r message=FALSE, warning=FALSE}
+compmeans(per20$viewsr2a, per20$q1tb, per20$wt, plot=FALSE)
+```
+
+Las mujeres reportan un mayor porcentaje de justificación.
+
+```{r message=FALSE, warning=FALSE}
+compmeans(per20$viewsr2a, per20$edad, per20$wt, plot=FALSE)
+```
+
+Los jóvenes son los que tienen menos tolerancia a la justificación de que candidatos no acepten los resultados de elecciones.
+
+```{r message=FALSE, warning=FALSE}
+compmeans(per20$viewsr2a, per20$educ, per20$wt, plot=FALSE)
+```
+
+Los menos educados son los que tienen una alta justificación.
