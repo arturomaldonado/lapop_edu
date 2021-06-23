@@ -1,0 +1,21 @@
+---
+title: "Regresión lineal"
+author: "Arturo Maldonado"
+date: "6/22/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Otras VIs
+
+```{r}
+modelo2 <- lm(apoyo ~ eff1r + ejec + tolr + it1r + b32r, data=lapop18)
+summary(modelo2)
+```
+
+
+
+
