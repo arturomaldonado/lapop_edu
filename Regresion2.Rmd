@@ -22,8 +22,9 @@ Los datos que vamos a usar deben citarse de la siguiente manera: Fuente: Baróme
 
 ```{r base, message=FALSE, warning=FALSE}
 library(rio)
-lapop18 <- import("https://raw.github.com/lapop-central/materials_edu/main/LAPOP_AB_Merge_2018_v1.0.sav")
-lapop18 <- subset(lapop18, pais<=35)
+#lapop18 <- import("lapop18.csv") #Para llamar al archivo grande desde mi directorio local
+#lapop18 <- subset(lapop18, pais<=35)
+lapop18 <- import("lapop18.RData")
 ```
 
 # Apoyo al sistema
