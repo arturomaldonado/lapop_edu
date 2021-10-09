@@ -105,7 +105,7 @@ La misma conclusión se puede sacar para las otras variables independientes, al 
 
 La dirección de la relación está marcada por el signo del coeficiente de la variable independiente. En nuestro ejemplo, los cinco coeficientes presentan signos positivos, lo que indica una relación directa; es decir, cuando aumenta la variable independiente, aumenta la variable dependiente, en promedio.
 
-## Coeficiente de determinación $R^2$ 
+## Coeficiente de determinación $R^2$
 
 El Gráfico 2.10 además de mostrar gráficamente los coeficientes y los intervalos de confianza al 95%, también muestra el dato para el coeficiente de determinación $R^2$ y para el número de observaciones con los que se calcula el modelo.
 
